@@ -1,0 +1,19 @@
+======================
+Django Google Maps API
+======================
+
+This app allows you to define Map and Marker objects in Python.
+
+These objects are designed to be serialized to JSON and parsed by the included
+jQuery plugin which converts them to actual Google Map and Marker instances.
+
+They can also be converted to strings which produces a Static Maps url.
+
+This way you can easily use unobtrusive javascript techniques along with maps.
+
+This project is being developed as one piece of a larger project I'm working on.
+So functionality will be added as I need it. In particular, the jQuery plugin
+will probably see some added functionality.
+
+Version 3 of the Google Geocoding Web service is also implemented to further
+enable an unobtrusive javascript approach.
