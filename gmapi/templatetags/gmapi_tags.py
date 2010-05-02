@@ -57,22 +57,29 @@ JSAPI_JQ_VERSION = getattr(settings, 'GOOGLE_JSAPI_JQ_VERSION', '1.4')
 
 
 @register.inclusion_tag('gmapi/script_tag.html')
-def google_jsapi_jquery(callback=None, plugins=JSAPI_JQ_PLUGINS):
+def google_jsapi_jquery(callback=None, jquery=None, plugins=JSAPI_JQ_PLUGINS):
     """Insert <script> tag for loading jQuery with Google AJAX API loader.
 
     Supports dynamically loading jQuery plugins by calling getScript on
     each plugin specified. A single callback function will be called
     once all scripts have been loaded.
+    
+    You can also specify an existing instance of jQuery if it's already
+    loaded.
     """
     # Load the uncompressed version if DEBUG is enabled.
-    script = "google.load('jquery', '%s'%s);" % (JSAPI_JQ_VERSION,
-                                                 ", {uncompressed:true}"
-                                                 if settings.DEBUG else '')
+    if jquery:
+        script = "window.jQuery = %s" % jquery
+    else:
+        script = "google.load('jquery', '%s'%s);" % (JSAPI_JQ_VERSION,
+                                                     ", {uncompressed:true}"
+                                                     if settings.DEBUG else '')
     if plugins:
         # Handle a single plugin or a list of plugins.
         if isinstance(plugins, basestring):
             plugins = [plugins]
-        script += "\ngoogle.setOnLoadCallback(function(){\n"
+        if not jquery:
+            script += "\ngoogle.setOnLoadCallback(function(){\n"
         if callback and len(plugins) > 1:
             script += ("    var i = 1; var j = %d;\n"
                        "    var callback = function(){\n"
@@ -82,5 +89,6 @@ def google_jsapi_jquery(callback=None, plugins=JSAPI_JQ_PLUGINS):
         for url in plugins:
             script += ("    jQuery.getScript('%s'%s);\n"
                        % (url, (', ' + callback) if callback else ''))
-        script += "});"
+        if not jquery:
+            script += "});"
     return {'script': script}

@@ -14,8 +14,9 @@ from django.conf.urls.defaults import * # pylint: disable-msg=W0401,W0614
 
 
 MEDIA_ROOT = getattr(settings, 'GMAPI_MEDIA_ROOT',
-                     os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                  'media'))
+                     os.path.join(os.path.dirname(
+                     os.path.dirname(os.path.abspath(__file__))),
+                     'media'))
 
 
 urlpatterns = patterns('',
