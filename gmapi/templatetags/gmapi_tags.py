@@ -67,11 +67,10 @@ def google_jsapi_jquery(callback=None, jquery=None, plugins=JSAPI_JQ_PLUGINS):
     You can also specify an existing instance of jQuery if it's already
     loaded.
     """
+    script = ""
     # Load the uncompressed version if DEBUG is enabled.
-    if jquery:
-        script = "window.jQuery = %s" % jquery
-    else:
-        script = "google.load('jquery', '%s'%s);" % (JSAPI_JQ_VERSION,
+    if not jquery:
+        script = "google.load('jquery', '%s'%s);\n" % (JSAPI_JQ_VERSION,
                                                      ", {uncompressed:true}"
                                                      if settings.DEBUG else '')
     if plugins:
@@ -79,7 +78,9 @@ def google_jsapi_jquery(callback=None, jquery=None, plugins=JSAPI_JQ_PLUGINS):
         if isinstance(plugins, basestring):
             plugins = [plugins]
         if not jquery:
-            script += "\ngoogle.setOnLoadCallback(function(){\n"
+            script += "google.setOnLoadCallback(function(){\n"
+        else:
+            script += "    window.jQuery = %s;\n" % jquery
         if callback and len(plugins) > 1:
             script += ("    var i = 1; var j = %d;\n"
                        "    var callback = function(){\n"
