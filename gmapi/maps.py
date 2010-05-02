@@ -322,7 +322,7 @@ class Geocoder(object):
         # Handle any unicode in the request.
         if 'address' in request:
             request['address'] = smart_str(request['address'],
-                                           strings_only=True)
+                                           strings_only=True).lower()
         # Add the sensor parameter if needed.
         if 'sensor' in request:
             if request['sensor'] != 'false':
