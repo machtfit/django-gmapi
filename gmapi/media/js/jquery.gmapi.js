@@ -141,7 +141,7 @@
             if (obj.mkr) {
                 div.addMarkers(obj.mkr);
                 // Auto-size map if no center or zoom given.
-                if (!(map.getCenter && map.getZoom >= 0)) {
+                if (!(map.getCenter() && map.getZoom() >= 0)) {
                     div.fitMarkers();
                 }
             }
