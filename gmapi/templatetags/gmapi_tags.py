@@ -90,10 +90,6 @@ def gmapi_jquery(callback=None, extra_plugins=None, jquery=None):
     # Build plugin loading script.
     plugin_script = ''
     if plugins:
-        if jquery and jquery not in ('jQuery', 'window.jQuery'):
-            # Reassign back to what we expect it to be called.
-            # E.g. Django Admin moves it to django.jQuery.
-            plugin_script += "    window.jQuery = %s;\n" % jquery
         if callback:
             if len(plugins) > 1:
                 # Handle multiple plugins.
@@ -118,10 +114,17 @@ def gmapi_jquery(callback=None, extra_plugins=None, jquery=None):
         debug = ", {uncompressed:true}" if settings.DEBUG else ''
         # Load jQuery.
         script += "google.load('jquery', '%s'%s);" % (JQUERY_VERSION, debug)
-    if plugin_script or callback:
-        # Handle callback from jQuery loader.
-        script += ("\ngoogle.setOnLoadCallback(%s);" if not jquery
-                   else "(%s)();") % (plugin_script or callback)
+        # Load plugins or callback.
+        if plugin_script or callback:
+            script += ("\ngoogle.setOnLoadCallback(%s);" %
+                       (plugin_script or callback))
+    elif plugin_script or callback:
+        if jquery not in ('jQuery', 'window.jQuery'):
+            # Reassign back to what we expect it to be called.
+            # E.g. Django Admin moves it to django.jQuery.
+            script += "window.jQuery = %s;\n" % jquery
+        # Load plugins or callback on document ready event.
+        script += "jQuery(%s);" % (plugin_script or callback)
 
     # Send script to template.
     return {'script': script}
