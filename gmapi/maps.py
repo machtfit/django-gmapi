@@ -63,11 +63,12 @@ class MapDiv(MapClass):
     element reference with the specified width and height set.
 
     """
-    def __init__(self, width, height):
+    def __init__(self, width, height, styles=None):
         # The DOM ID isn't needed because we will
         # set it dynamically with javascript.
-        super(MapDiv, self).__init__(div={'width': width,
-                                          'height': height})
+        div = styles or {}
+        div.update({'width': width, 'height': height})
+        super(MapDiv, self).__init__(div=div)
 
     def getSize(self):
         return Size(self['div']['width'], self['div']['height'])
