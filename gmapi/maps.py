@@ -92,6 +92,11 @@ class Map(MapClass):
         params['sensor'] = 'true' if opts.get('sensor') else 'false'
         return u'%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
 
+    def _markers(self):
+        return self.get('mkr', [])
+
+    markers = property(_markers)
+
     def fitBounds(self, bounds):
         raise NotImplementedError
 
