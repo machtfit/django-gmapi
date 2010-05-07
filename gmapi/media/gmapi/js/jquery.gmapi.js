@@ -1,4 +1,4 @@
-(function($){
+jQuery(function($){
 
     // Return new instance of a class using an array of parameters.
     function instance(constructor, args){
@@ -9,9 +9,9 @@
         return new F();
     }
 
-    // Return a property value by name (descendant of google by default).
+    // Return a property value by name (descendant of google.maps by default).
     function property(path, context){
-        context = context || window.google;
+        context = context || window.google.maps;
         path = path.split('.');
         if (path.length > 1) {
             return property(path.slice(1).join('.'), context[path[0]]);
@@ -32,6 +32,11 @@
     //   div    Placeholder for DOM node. Contains styles to be applied.
     //   val    The name of a property or constant (descendant of google only).
     function parse(obj, div){
+        // Handle a div.
+        if (obj === 'div') {
+            // Apply styles and return first element.
+            return div;
+        }
         if ($.isPlainObject(obj) || $.isArray(obj)) {
             // Handle a new class instance.
             if (obj.cls) {
@@ -44,24 +49,13 @@
                 }
                 return instance(property(obj.cls), args);
             }
-            else {
-                // Handle a div.
-                if (obj.div) {
-                    // Apply styles and return first element.
-                    return div.css(obj.div)[0];
-                }
-                else {
-                    // Handle a property or constant.
-                    if (obj.val) {
-                        return property(obj.val);
-                    }
-                    else {
-                        // Handle any other iterable.
-                        for (var k in obj) {
-                            obj[k] = parse(obj[k], div);
-                        }
-                    }
-                }
+            // Handle a property or constant.
+            if (obj.val) {
+                return property(obj.val);
+            }
+            // Handle any other iterable.
+            for (var k in obj) {
+                obj[k] = parse(obj[k], div);
             }
         }
         return obj;
@@ -93,7 +87,7 @@
                 var markers = div.data('markers') || [];
                 for (var m in obj) {
                     // Parse the marker.
-                    var marker = parse(obj[m], div);
+                    var marker = parse(obj[m], this);
                     // Render it to the map.
                     marker.setMap(map);
                     // Add the marker to our array.
@@ -132,9 +126,9 @@
         return this.each(function(){
             var div = $(this);
             // Get rid of any existing markers.
-            div.removeMarkers();
+            div.removeMarkers().removeData('map');
             // Parse the map.
-            var map = parse(obj, div);
+            var map = parse(obj, div.children('div')[0]);
             // Save the map to div data.
             div.data('map', map);
             // Handle markers.
@@ -145,9 +139,30 @@
                     div.fitMarkers();
                 }
             }
+            // Send a newmap trigger.
+            div.trigger('newmap');
             // Only add map to first element.
             return false;
         });
     };
 
-})(jQuery);
+    // Startup: Find any maps and initialize them.
+    $('div.gmap:visible').each(function(){
+        var div = $(this);
+        var mapdiv = div.children('div');
+        var data = mapdiv.attr('class').match(/{.*}/)[0];
+        if (data) {
+            mapdiv.removeClass();
+            div.newMap($.parseJSON(data));
+            var mapimg = div.children('img');
+            var t = window.setTimeout(function(){
+                mapimg.css('z-index', -1);
+            }, 2000);
+            google.maps.event.addListenerOnce(div.data('map'), 'tilesloaded', function(){
+                window.clearTimeout(t);
+                mapimg.css('z-index', -1);
+            });
+        }
+    });
+
+});

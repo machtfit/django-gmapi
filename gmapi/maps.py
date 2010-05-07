@@ -9,11 +9,11 @@ from django.utils.encoding import force_unicode, smart_str
 from django.utils.simplejson import loads
 
 
-GOOGLE_MAPS_STATIC_URL = getattr(settings, 'GOOGLE_MAPS_STATIC_URL',
-                                 'http://maps.google.com/maps/api/staticmap')
+STATIC_URL = getattr(settings, 'GMAPI_STATIC_URL',
+                     'http://maps.google.com/maps/api/staticmap')
 
-GOOGLE_MAPS_GEOCODE_URL = getattr(settings, 'GOOGLE_MAPS_GEOCODE_URL',
-                                  'http://maps.google.com/maps/api/geocode')
+GEOCODE_URL = getattr(settings, 'GMAPI_GEOCODE_URL',
+                      'http://maps.google.com/maps/api/geocode')
 
 
 class MapClass(dict):
@@ -31,14 +31,13 @@ class MapClass(dict):
 class MapConstant(MapClass):
     """A custom constant class.
 
-    For holding special Google Maps constants.
-    When parsed by JSONEncoder and subsequently by our custom
-    parseGOBJ jQuery function, it will be converted to the
-    actual constant value.
+    For holding special Google Maps constants. When parsed by
+    JSONEncoder and subsequently by our custom jQuery plugin,
+    it will be converted to the actual constant value.
 
     """
     def __init__(self, cls, const):
-        super(MapConstant, self).__init__(val='maps.%s.%s' % (cls, const))
+        super(MapConstant, self).__init__(val='%s.%s' % (cls, const))
         self.const = const
 
     def __setitem__(self, key, value):
@@ -55,41 +54,30 @@ class MapConstantClass(object):
             setattr(self, const, MapConstant(name, const))
 
 
-class MapDiv(MapClass):
-    """An HTML node container, which is typically a DIV element.
-
-    When parsed by JSONEncoder and subsequently by our custom
-    parseGOBJ jQuery function, it will be converted to an actual
-    element reference with the specified width and height set.
-
-    """
-    def __init__(self, width, height, styles=None):
-        # The DOM ID isn't needed because we will
-        # set it dynamically with javascript.
-        div = styles or {}
-        div.update({'width': width, 'height': height})
-        super(MapDiv, self).__init__(div=div)
-
-    def getSize(self):
-        return Size(self['div']['width'], self['div']['height'])
-
-
 class Map(MapClass):
     """A Google Map.
 
-    Equivalent to google.maps.Map. When parsed by JSONEncoder and
-    subsequently by our custom parseGOBJ jQuery function, it will
-    be converted to an actual google.maps.Map instance.
+    Equivalent to google.maps.Map. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.Map instance.
 
     """
-    def __init__(self, mapDiv, opts=None):
-        super(Map, self).__init__(cls='maps.Map')
-        self['arg'] = Args(['mapDiv', 'opts'], [mapDiv])
+    def __init__(self, mapDiv=None, opts=None):
+        """mapDiv is not used."""
+        super(Map, self).__init__(cls='Map')
+        self['arg'] = Args(['mapDiv', 'opts'], ['div'])
         self.setOptions(opts)
 
     def __unicode__(self):
+        """Produces a static map image url.
+
+        Don't forget to set the map option 'size' (as an instance
+        of maps.Size). Or alternatively you can append it to the
+        resulting string (e.g. '&size=400x400').
+
+        """
         opts = self['arg'].get('opts', {})
-        params = {'size': unicode(self.getDiv().getSize())}
+        params = {}
         for p in ['center', 'zoom', 'size', 'format', 'language']:
             if p in opts:
                 params[p] = unicode(opts[p])
@@ -102,20 +90,19 @@ class Map(MapClass):
         if 'mkr' in self:
             params['markers'] = [unicode(m) for m in self['mkr']]
         params['sensor'] = 'true' if opts.get('sensor') else 'false'
-        return '%s?%s' % (GOOGLE_MAPS_STATIC_URL,
-                          urlencode(params, doseq=True))
+        return u'%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
 
     def fitBounds(self, bounds):
-        raise NotImplemented
+        raise NotImplementedError
 
     def getBounds(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def getCenter(self):
         return self['arg'].get('opts', {}).get('center')
 
     def getDiv(self):
-        return self['arg'].get('mapDiv')
+        raise NotImplementedError
 
     def getMapTypeId(self):
         return self['arg'].get('opts', {}).get('mapTypeId')
@@ -163,13 +150,13 @@ ControlPosition = MapConstantClass('ControlPosition',
 class Marker(MapClass):
     """A Google Marker.
 
-    Equivalent to google.maps.Marker. When parsed by JSONEncoder and
-    subsequently by our custom parseGOBJ jQuery function, it will be
+    Equivalent to google.maps.Marker. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
     converted to an actual google.maps.Map instance.
 
     """
     def __init__(self, opts=None):
-        super(Marker, self).__init__(cls='maps.Marker')
+        super(Marker, self).__init__(cls='Marker')
         self._map = None
         self['arg'] = Args(['opts'])
         self.setOptions(opts)
@@ -275,14 +262,15 @@ class Marker(MapClass):
 class MarkerImage(MapClass):
     """An image to be used as the icon or shadow for a Marker.
 
-    Equivalent to google.maps.MarkerImage. When parsed by JSONEncoder
-    and subsequently by our custom parseGOBJ jQuery function, it will
-    be converted to an actual google.maps.MarkerImage instance.
+    Equivalent to google.maps.MarkerImage. When parsed by
+    JSONEncoder and subsequently by our custom jQuery plugin,
+    it will be converted to an actual google.maps.MarkerImage
+    instance.
 
     """
     def __init__(self, url, size=None, origin=None, anchor=None,
                  scaledSize=None):
-        super(MarkerImage, self).__init__(cls='maps.MarkerImage')
+        super(MarkerImage, self).__init__(cls='MarkerImage')
         self['arg'] = Args(['url', 'size', 'origin', 'anchor', 'scaledSize'],
                            [url])
         if size:
@@ -331,7 +319,7 @@ class Geocoder(object):
         else:
             request['sensor'] = 'false'
         cache_key = urlencode(request)
-        url = '%s/json?%s' % (GOOGLE_MAPS_GEOCODE_URL, cache_key)
+        url = '%s/json?%s' % (GEOCODE_URL, cache_key)
         # Try up to 30 times if over query limit.
         for _ in xrange(30):
             # Check if result is already cached.
@@ -372,9 +360,9 @@ class Geocoder(object):
 def _parseGeocoderResult(result):
     """ Parse Geocoder Results.
 
-    Traverses the results converting any latitude-longitude pairs into
-    instances of LatLng and any SouthWest-NorthEast pairs into instances
-    of LatLngBounds.
+    Traverses the results converting any latitude-longitude pairs
+    into instances of LatLng and any SouthWest-NorthEast pairs
+    into instances of LatLngBounds.
 
     """
     # Check for LatLng objects and convert.
@@ -397,12 +385,12 @@ class LatLng(MapClass):
     """A point in geographical coordinates, latitude and longitude.
 
     Equivalent to google.maps.LatLng. When parsed by JSONEncoder
-    and subsequently by our custom parseGOBJ jQuery function, it
-    will be converted to an actual google.maps.LatLng instance.
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.LatLng instance.
 
     """
     def __init__(self, lat, lng, noWrap=None):
-        super(LatLng, self).__init__(cls='maps.LatLng')
+        super(LatLng, self).__init__(cls='LatLng')
         self['arg'] = Args(['lat', 'lng', 'noWrap'], [Degree(lat), Degree(lng)])
         if noWrap is not None:
             self['arg'].setdefault('noWrap', noWrap)
@@ -430,13 +418,14 @@ class LatLng(MapClass):
 class LatLngBounds(MapClass):
     """A rectangle in geographical coordinates.
 
-    Equivalent to google.maps.LatLngBounds. When parsed by JSONEncoder
-    and subsequently by our custom parseGOBJ jQuery function, it will
-    be converted to an actual google.maps.LatLngBounds instance.
+    Equivalent to google.maps.LatLngBounds. When parsed by
+    JSONEncoder and subsequently by our custom jQuery plugin,
+    it will be converted to an actual google.maps.LatLngBounds
+    instance.
 
     """
     def __init__(self, sw=None, ne=None):
-        super(LatLngBounds, self).__init__(cls='maps.LatLngBounds')
+        super(LatLngBounds, self).__init__(cls='LatLngBounds')
         self['arg'] = Args(['sw', 'ne'])
         if sw:
             self['arg'].setdefault('sw', sw)
@@ -447,7 +436,7 @@ class LatLngBounds(MapClass):
         return self.toUrlValue()
 
     def contains(self, point):
-        raise NotImplemented
+        raise NotImplementedError
 
     def equals(self, other):
         # Check if our corners are equal.
@@ -455,10 +444,10 @@ class LatLngBounds(MapClass):
                 self.getNorthEast().equals(other.getNorthEast()))
 
     def extend(self, point):
-        raise NotImplemented
+        raise NotImplementedError
 
     def getCenter(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def getNorthEast(self):
         return self['arg'].get('ne')
@@ -467,7 +456,7 @@ class LatLngBounds(MapClass):
         return self['arg'].get('sw')
 
     def intersects(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
     def isEmpty(self):
         return ((not self.getSouthWest()) or
@@ -476,7 +465,7 @@ class LatLngBounds(MapClass):
                  self.getNorthEast().lat()))
 
     def toSpan(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def toString(self):
         return '(%s, %s)' % (self.getSouthWest().toString(),
@@ -487,19 +476,19 @@ class LatLngBounds(MapClass):
                           self.getNorthEast().toUrlValue(precision))
 
     def union(self, other):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class Point(MapClass):
     """A point on a two-dimensional plane.
 
-    Equivalent to google.maps.Point. When parsed by JSONEncoder and
-    subsequently by our custom parseGOBJ jQuery function, it will
-    be converted to an actual google.maps.Point instance.
+    Equivalent to google.maps.Point. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.Point instance.
 
     """
     def __init__(self, x, y):
-        super(Point, self).__init__(cls='maps.Point')
+        super(Point, self).__init__(cls='Point')
         self['arg'] = Args(['x', 'y'], [x, y])
 
     def __unicode__(self):
@@ -532,13 +521,13 @@ class Point(MapClass):
 class Size(MapClass):
     """A two-dimensonal size.
 
-    Equivalent to google.maps.Size. When parsed by JSONEncoder and
-    subsequently by our custom parseGOBJ jQuery function, it will
-    be converted to an actual google.maps.Size instance.
+    Equivalent to google.maps.Size. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.Size instance.
 
     """
     def __init__(self, width, height, widthUnit=None, heightUnit=None):
-        super(Size, self).__init__(cls='maps.Size')
+        super(Size, self).__init__(cls='Size')
         self['arg'] = Args(['width', 'height', 'widthUnit', 'heightUnit'],
                            [int(width), int(height)])
         if widthUnit:

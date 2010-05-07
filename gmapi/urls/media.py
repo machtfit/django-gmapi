@@ -5,21 +5,31 @@ Add something like the following to the bottom of your urls.py:
 from django.conf import settings
 if settings.DEBUG:
     urlpatterns = patterns('',
-        (r'^media/gmapi/', include('gmapi.urls.media')),
+        (r'', include('gmapi.urls.media')),
     ) + urlpatterns
 """
-import os
+from os import path
 from django.conf import settings
 from django.conf.urls.defaults import * # pylint: disable-msg=W0401,W0614
+from urlparse import urljoin
 
 
+# Same rules apply as regular MEDIA_ROOT.
 MEDIA_ROOT = getattr(settings, 'GMAPI_MEDIA_ROOT',
-                     os.path.join(os.path.dirname(
-                     os.path.dirname(os.path.abspath(__file__))),
-                     'media'))
+                     path.abspath(path.join(path.dirname(
+                     path.dirname(__file__)), 'media', 'gmapi')))
+
+# Same rules apply as ADMIN_MEDIA_PREFIX.
+MEDIA_PREFIX = getattr(settings, 'GMAPI_MEDIA_PREFIX',
+                       urljoin(settings.MEDIA_URL, 'gmapi/').lstrip('/'))
 
 
-urlpatterns = patterns('',
-    (r'(?P<path>.*)$', 'django.views.static.serve',
-     {'document_root': MEDIA_ROOT}),
-)
+urlpatterns = []
+
+
+if not (MEDIA_PREFIX.startswith(u'http://') or
+        MEDIA_PREFIX.startswith(u'https://')):
+    urlpatterns = patterns('',
+        (r'^%s(?P<path>.*)$' % MEDIA_PREFIX, 'django.views.static.serve',
+         {'document_root': MEDIA_ROOT}),
+    )
