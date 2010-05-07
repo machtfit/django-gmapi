@@ -1,5 +1,6 @@
 """Custom Map widget."""
 from django.conf import settings
+from django.forms.forms import Media
 from django.forms.util import flatatt
 from django.forms.widgets import Widget
 from django.utils.html import escape
@@ -8,8 +9,12 @@ from django.utils.simplejson import dumps
 from gmapi import maps
 
 
+JQUERY_URL = getattr(settings, 'GMAPI_JQUERY_URL',
+                     'http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery'
+                     '%s.js' % ('' if settings.DEBUG else '.min'))
+
 MAPS_URL = getattr(settings, 'GMAPI_MAPS_URL',
-                     'http://maps.google.com/maps/api/js?sensor=false')
+                   'http://maps.google.com/maps/api/js?sensor=false')
 
 # Same rules apply as ADMIN_MEDIA_PREFIX.
 # The default will have MEDIA_URL prepended later.
@@ -17,6 +22,11 @@ MEDIA_PREFIX = getattr(settings, 'GMAPI_MEDIA_PREFIX', 'gmapi/')
 
 
 class GoogleMap(Widget):
+    def __init__(self, attrs=None):
+        self.nojquery = (attrs or {}).pop('nojquery', False)
+        self.nomapsjs = (attrs or {}).pop('nomapsjs', False)
+        super(GoogleMap, self).__init__(attrs)
+
     def render(self, name, value, attrs=None):
         if value is None:
             value = maps.Map()
@@ -40,6 +50,14 @@ class GoogleMap(Widget):
         return mark_safe(u'<div%s>%s%s</div>' %
                          (flatatt(final_attrs), map_div, map_img))
 
-    class Media:
-        js = (MAPS_URL, '%sjs/jquery.gmapi%s.js' %
-              (MEDIA_PREFIX, ('' if settings.DEBUG else '.min')))
+    def _media(self):
+        js = []
+        if not self.nojquery:
+            js.append(JQUERY_URL)
+        if not self.nomapsjs:
+            js.append(MAPS_URL)
+        js.append('%sjs/jquery.gmapi%s.js' %
+                  (MEDIA_PREFIX, ('' if settings.DEBUG else '.min')))
+        return Media(js=js)
+
+    media = property(_media)
