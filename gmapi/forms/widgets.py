@@ -45,7 +45,7 @@ class GoogleMap(Widget):
                     width, height))
         map_img = (u'<img style="position:absolute;z-index:1" '
                    u'width="%(x)d" height="%(y)d" alt="Google Map" '
-                   u'src="%(map)s&size=%(x)dx%(y)d" />' %
+                   u'src="%(map)s&amp;size=%(x)dx%(y)d" />' %
                    {'map': escape(value), 'x': width, 'y': height})
         return mark_safe(u'<div%s>%s%s</div>' %
                          (flatatt(final_attrs), map_div, map_img))

@@ -15,6 +15,9 @@ STATIC_URL = getattr(settings, 'GMAPI_STATIC_URL',
 GEOCODE_URL = getattr(settings, 'GMAPI_GEOCODE_URL',
                       'http://maps.google.com/maps/api/geocode')
 
+CHART_URL = getattr(settings, 'GMAPI_CHART_URL',
+                    'http://chart.apis.google.com/chart')
+
 
 class MapClass(dict):
     """A base class for Google Maps API classes.
@@ -163,17 +166,26 @@ class Marker(MapClass):
     def __init__(self, opts=None):
         super(Marker, self).__init__(cls='Marker')
         self._map = None
+        self._size = None
+        self._color = None
+        self._label = None
         self['arg'] = Args(['opts'])
         self.setOptions(opts)
 
     def __unicode__(self):
         opts = self['arg'].get('opts', {})
         params = []
-        for p in ['size', 'color', 'label', 'icon']:
-            if p in opts:
-                params.append('%s:%s' % (p, opts[p]))
-        if 'shadow' in opts:
-            params.append('shadow:%s' % 'true' if opts['shadow'] else 'false')
+        if self._size:
+            params.append('size:%s' % self._size)
+        if self._color or self._label:
+            if self._color:
+                params.append('color:%s' % self._color)
+            if self._label:
+                params.append('label:%s' % self._label)
+        elif 'icon' in opts:
+            params.append('icon:%s' % opts['icon'])
+            if 'shadow' in opts:
+                params.append('shadow:%s' % 'true' if opts['shadow'] else 'false')
         if 'position' in opts:
             params.append(unicode(opts['position']))
         return '|'.join(params)
@@ -243,6 +255,23 @@ class Marker(MapClass):
                 # Add this marker to the map.
                 self._map.setdefault('mkr', []).append(self)
         if options:
+            self._size = options.pop('size', self._size)
+            self._color = options.pop('color', self._color)
+            self._label = options.pop('label', self._label)
+            if (self._color or self._label) and 'icon' not in options:
+                options['icon'] = ('%s?%s' % (CHART_URL,
+                     urlencode({'chst': 'd_map_pin_letter',
+                                'chld': '|'.join([
+                                    self._label or '',
+                                    (self._color or 'FF6357').lstrip('0x')])
+                                })
+                ))
+                options['shadow'] = ('%s?%s' % (CHART_URL,
+                     urlencode({'chst': 'd_map_pin_letter'})
+                ))
+            elif 'icon' in options:
+                self._color = None
+                self._label = None
             self['arg'].setdefault('opts', {}).update(options)
 
     def setPosition(self, latlng):
