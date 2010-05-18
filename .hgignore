@@ -5,3 +5,5 @@ Thumbs.db
 .project
 .pydevproject
 .settings/*
+.idea/*
+django_gmapi.egg-info/*
