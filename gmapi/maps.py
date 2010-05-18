@@ -65,8 +65,8 @@ class Map(MapClass):
     converted to an actual google.maps.Map instance.
 
     """
-    def __init__(self, mapDiv=None, opts=None):
-        """mapDiv is not used."""
+    def __init__(self, opts=None):
+        """mapDiv is not used, so not included in parameters."""
         super(Map, self).__init__(cls='Map')
         self['arg'] = Args(['mapDiv', 'opts'], ['div'])
         self.setOptions(opts)
