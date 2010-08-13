@@ -414,6 +414,31 @@ class Polygon(MapClass):
         self.setPaths([path])
 
 
+class InfoWindow(MapClass):
+    """A Google InfoWindow.
+
+    Equivalent to google.maps.InfoWindow. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.InfoWindow instance.
+
+    """
+    _getopts = {
+        'getContent': 'content',
+        'getPosition': 'position',
+        'getZIndex': 'zIndex',
+    }
+    _setopts = {
+        'setContent': 'content',
+        'setPosition': 'position',
+        'setZIndex': 'zIndex',
+    }
+
+    def __init__(self, opts=None):
+        super(InfoWindow, self).__init__(cls='InfoWindow')
+        self['arg'] = Args(['opts'])
+        self.setOptions(opts)
+
+
 class Geocoder(object):
     """A service for converting between an address and a LatLng.
 

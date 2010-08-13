@@ -124,7 +124,7 @@ jQuery(function($){
     }
 
     // Fit the map to the objects.
-    function fitObjects(name){
+    function fitObjects(name, zoom){
         return function(){
             var div = $(this);
             // Get a map reference.
@@ -132,8 +132,16 @@ jQuery(function($){
             // Get any existing objects.
             var objects = div.data(name);
             if (map && objects) {
-                // Fit the map to the bounds.
-                map.fitBounds(toBounds(objects));
+                var bounds = toBounds(objects);
+                if (zoom >= 0) {
+                    // Zoom specified: center map to the bounds.
+                    map.setZoom(zoom);
+                    map.setCenter(bounds.getCenter());
+                }
+                else {
+                    // No zoom: fit map to the bounds.
+                    map.fitBounds(bounds);
+                }
             }
         }
     }
@@ -158,14 +166,14 @@ jQuery(function($){
         addPolygons: function(obj){
             return this.each(addObjects('polygons', obj));
         },
-        fitMarkers: function(){
-            return this.each(fitObjects('markers'));
+        fitMarkers: function(zoom){
+            return this.each(fitObjects('markers', zoom));
         },
-        fitPolylines: function(){
-            return this.each(fitObjects('polylines'));
+        fitPolylines: function(zoom){
+            return this.each(fitObjects('polylines', zoom));
         },
-        fitPolygons: function(){
-            return this.each(fitObjects('polygons'));
+        fitPolygons: function(zoom){
+            return this.each(fitObjects('polygons', zoom));
         },
         newMap: function(obj){
             var objects = Array();
@@ -190,8 +198,8 @@ jQuery(function($){
                     if (k in obj){
                         addObjects(objects[k], obj[k]).call(this);
                         // Auto-size map if no center or zoom given.
-                        if (!(map.getCenter() && map.getZoom() >= 0)) {
-                            fitObjects(objects[k]).call(this);
+                        if (!map.getCenter()) {
+                            fitObjects(objects[k], map.getZoom()).call(this);
                         }
                     }
                 }
