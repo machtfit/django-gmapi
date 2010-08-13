@@ -3,9 +3,9 @@ import time
 import urllib
 from django.conf import settings
 from django.core.cache import cache
-from django.http import urlencode
 from django.utils.encoding import force_unicode, smart_str
 from django.utils.simplejson import loads
+from gmapi.utils.http import urlencode
 
 
 STATIC_URL = getattr(settings, 'GMAPI_STATIC_URL',
