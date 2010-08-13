@@ -438,6 +438,15 @@ class InfoWindow(MapClass):
         self['arg'] = Args(['opts'])
         self.setOptions(opts)
 
+    def open(self, map, anchor=None):
+        """Link this InfoWindow to a Marker and/or Map."""
+        if anchor:
+            # Make sure the marker is assigned to the specified map.
+            anchor.setMap(map)
+            anchor['nfo'] = self
+        else:
+            map['nfo'] = self
+
 
 class Geocoder(object):
     """A service for converting between an address and a LatLng.
