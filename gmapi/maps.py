@@ -387,7 +387,9 @@ class Polygon(MapClass):
             params.append('weight:%d' % opts['strokeWeight'])
         if 'paths' in opts:
             for path in opts['paths']:
-                paths.append('|'.join(params + [unicode(p) for p in path]))
+                loop = ['' if path[-1].equals(path[0]) else unicode(path[0])]
+                paths.append('|'.join(params + [unicode(p) for p in path] +
+                                      loop))
         return '&path='.join(paths)
 
     def getMap(self):
