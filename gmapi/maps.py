@@ -1,4 +1,3 @@
-# pylint: disable-msg=C0103
 """Implements the Google Maps API v3."""
 import time
 import urllib
@@ -20,15 +19,35 @@ CHART_URL = getattr(settings, 'GMAPI_CHART_URL',
 
 
 class MapClass(dict):
-    """A base class for Google Maps API classes.
+    """A base class for Google Maps API classes."""
+    _getopts = {}
+    _setopts = {}
 
-    Handles string conversion so that we only have to define a
-    __unicode__ method.
-    """
+    def __getattr__(self, item):
+        """Handle generic get and set option methods."""
+        if 'arg' in self:
+            if item in self._getopts:
+                key = self._getopts[item]
+                def func():
+                    return self['arg'].get('opts', {}).get(key)
+                return func
+            if item in self._setopts:
+                key = self._setopts[item]
+                def func(value):
+                    # Call setOptions so that it can be overridden.
+                    self.setOptions({key: value})
+                return func
+        raise AttributeError, item
+
     def __str__(self):
+        """Handle string conversion."""
         if hasattr(self, '__unicode__'):
             return force_unicode(self).encode('utf-8')
         return '%s object' % self.__class__.__name__
+
+    def setOptions(self, opts):
+        if 'arg' in self and opts:
+            self['arg'].setdefault('opts', {}).update(opts)
 
 
 class MapConstant(MapClass):
@@ -65,6 +84,17 @@ class Map(MapClass):
     converted to an actual google.maps.Map instance.
 
     """
+    _getopts = {
+        'getCenter': 'center',
+        'getMapTypeId': 'mapTypeId',
+        'getZoom': 'zoom',
+    }
+    _setopts = {
+        'setCenter': 'center',
+        'setMapTypeId': 'mapTypeId',
+        'setZoom': 'zoom',
+    }
+
     def __init__(self, opts=None):
         """mapDiv is not used, so not included in parameters."""
         super(Map, self).__init__(cls='Map')
@@ -92,44 +122,28 @@ class Map(MapClass):
             params['visible'] = '|'.join([unicode(v) for v in opts['visible']])
         if 'mkr' in self:
             params['markers'] = [unicode(m) for m in self['mkr']]
+        if 'pln' in self:
+            params['path'] = [unicode(p) for p in self['pln']]
+        if 'pgn' in self:
+            params['path'] = [q for p in self['pgn']
+                              for q in unicode(p).split('&path=')]
         params['sensor'] = 'true' if opts.get('sensor') else 'false'
-        return u'%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
+        return '%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
 
     def _markers(self):
         return self.get('mkr', [])
 
     markers = property(_markers)
 
-    def fitBounds(self, bounds):
-        raise NotImplementedError
+    def _polylines(self):
+        return self.get('pln', [])
 
-    def getBounds(self):
-        raise NotImplementedError
+    polylines = property(_polylines)
 
-    def getCenter(self):
-        return self['arg'].get('opts', {}).get('center')
+    def _polygons(self):
+        return self.get('pgn', [])
 
-    def getDiv(self):
-        raise NotImplementedError
-
-    def getMapTypeId(self):
-        return self['arg'].get('opts', {}).get('mapTypeId')
-
-    def getZoom(self):
-        return self['arg'].get('opts', {}).get('zoom')
-
-    def setCenter(self, latlng):
-        self.setOptions({'center': latlng})
-
-    def setMapTypeId(self, mapTypeId):
-        self.setOptions({'mapTypeId': mapTypeId})
-
-    def setOptions(self, options):
-        if options:
-            self['arg'].setdefault('opts', {}).update(options)
-
-    def setZoom(self, zoom):
-        self.setOptions({'zoom': zoom})
+    polygons = property(_polygons)
 
 
 MapTypeId = MapConstantClass('MapTypeId',
@@ -160,9 +174,37 @@ class Marker(MapClass):
 
     Equivalent to google.maps.Marker. When parsed by JSONEncoder
     and subsequently by our custom jQuery plugin, it will be
-    converted to an actual google.maps.Map instance.
+    converted to an actual google.maps.Marker instance.
 
     """
+    _getopts = {
+        'getClickable': 'clickable',
+        'getCursor': 'cursor',
+        'getDraggable': 'draggable',
+        'getFlat': 'flat',
+        'getIcon': 'icon',
+        'getPosition': 'position',
+        'getShadow': 'shadow',
+        'getShape': 'shape',
+        'getTitle': 'title',
+        'getVisible': 'visible',
+        'getZIndex': 'zIndex',
+    }
+    _setopts = {
+        'setClickable': 'clickable',
+        'setCursor': 'cursor',
+        'setDraggable': 'draggable',
+        'setFlat': 'flat',
+        'setIcon': 'icon',
+        'setMap': 'map',
+        'setPosition': 'position',
+        'setShadow': 'shadow',
+        'setShape': 'shape',
+        'setTitle': 'title',
+        'setVisible': 'visible',
+        'setZIndex': 'zIndex',
+    }
+
     def __init__(self, opts=None):
         super(Marker, self).__init__(cls='Marker')
         self._map = None
@@ -190,59 +232,8 @@ class Marker(MapClass):
             params.append(unicode(opts['position']))
         return '|'.join(params)
 
-    def getClickable(self):
-        return self['arg'].get('opts', {}).get('clickable')
-
-    def getCursor(self):
-        return self['arg'].get('opts', {}).get('cursor')
-
-    def getDraggable(self):
-        return self['arg'].get('opts', {}).get('draggable')
-
-    def getFlat(self):
-        return self['arg'].get('opts', {}).get('flat')
-
-    def getIcon(self):
-        return self['arg'].get('opts', {}).get('icon')
-
     def getMap(self):
         return self._map
-
-    def getPosition(self):
-        return self['arg'].get('opts', {}).get('position')
-
-    def getShadow(self):
-        return self['arg'].get('opts', {}).get('shadow')
-
-    def getShape(self):
-        return self['arg'].get('opts', {}).get('shape')
-
-    def getTitle(self):
-        return self['arg'].get('opts', {}).get('title')
-
-    def getVisible(self):
-        return self['arg'].get('opts', {}).get('visible')
-
-    def getZIndex(self):
-        return self['arg'].get('opts', {}).get('zIndex')
-
-    def setClickable(self, flag):
-        self.setOptions({'clickable': flag})
-
-    def setCursor(self, cursor):
-        self.setOptions({'cursor': cursor})
-
-    def setDraggable(self, flag):
-        self.setOptions({'draggable': flag})
-
-    def setFlat(self, flag):
-        self.setOptions({'flat': flag})
-
-    def setIcon(self, icon):
-        self.setOptions({'icon': icon})
-
-    def setMap(self, gmap):
-        self.setOptions({'map': gmap})
 
     def setOptions(self, options):
         if options and 'map' in options:
@@ -272,25 +263,7 @@ class Marker(MapClass):
             elif 'icon' in options:
                 self._color = None
                 self._label = None
-            self['arg'].setdefault('opts', {}).update(options)
-
-    def setPosition(self, latlng):
-        self.setOptions({'position': latlng})
-
-    def setShadow(self, shadow):
-        self.setOptions({'shadow': shadow})
-
-    def setShape(self, shape):
-        self.setOptions({'shape': shape})
-
-    def setTitle(self, title):
-        self.setOptions({'title': title})
-
-    def setVisible(self, visible):
-        self.setOptions({'visible': visible})
-
-    def setZIndex(self, zIndex):
-        self.setOptions({'zIndex': zIndex})
+        super(Marker, self).setOptions(options)
 
 
 class MarkerImage(MapClass):
@@ -318,6 +291,125 @@ class MarkerImage(MapClass):
 
     def __unicode__(self):
         return self['arg'].get('url')
+
+
+class Polyline(MapClass):
+    """A Google Polyline.
+
+    Equivalent to google.maps.Polyline. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.Polyline instance.
+
+    """
+    _getopts = {
+        'getPath': 'path',
+    }
+    _setopts = {
+        'setMap': 'map',
+        'setPath': 'path',
+    }
+
+    def __init__(self, opts=None):
+        super(Polyline, self).__init__(cls='Polyline')
+        self._map = None
+        self['arg'] = Args(['opts'])
+        self.setOptions(opts)
+
+    def __unicode__(self):
+        opts = self['arg'].get('opts', {})
+        params = []
+        if 'strokeColor' in opts:
+            color = 'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
+            if 'strokeOpacity' in opts:
+                color += '%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+            params.append(color)
+        if 'strokeWeight' in opts:
+            params.append('weight:%d' % opts['strokeWeight'])
+        if 'path' in opts:
+            params.append('|'.join([unicode(p) for p in opts['path']]))
+        return '|'.join(params)
+
+    def getMap(self):
+        return self._map
+
+    def setOptions(self, options):
+        if options and 'map' in options:
+            if self._map:
+                # Remove this polyline from the map.
+                self._map['pln'].remove(self)
+            # Save new map reference.
+            self._map = options.pop('map')
+            if self._map:
+                # Add this polyline to the map.
+                self._map.setdefault('pln', []).append(self)
+        super(Polyline, self).setOptions(options)
+
+
+class Polygon(MapClass):
+    """A Google Polygon.
+
+    Equivalent to google.maps.Polygon. When parsed by JSONEncoder
+    and subsequently by our custom jQuery plugin, it will be
+    converted to an actual google.maps.Polygon instance.
+
+    """
+    _getopts = {
+        'getPaths': 'paths',
+    }
+    _setopts = {
+        'setMap': 'map',
+        'setPaths': 'paths',
+    }
+
+    def __init__(self, opts=None):
+        super(Polygon, self).__init__(cls='Polygon')
+        self._map = None
+        self['arg'] = Args(['opts'])
+        self.setOptions(opts)
+
+    def __unicode__(self):
+        opts = self['arg'].get('opts', {})
+        params = []
+        paths = []
+        if 'fillColor' in opts:
+            fillcolor = ('fillcolor:0x%s' %
+                         opts['fillColor'].lstrip('#').lower())
+            if 'fillOpacity' in opts:
+                fillcolor += ('%02x' %
+                              min(max(opts['fillOpacity'] * 255, 0), 255))
+            params.append(fillcolor)
+        if 'strokeColor' in opts:
+            color = 'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
+            if 'strokeOpacity' in opts:
+                color += '%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+            params.append(color)
+        if 'strokeWeight' in opts:
+            params.append('weight:%d' % opts['strokeWeight'])
+        if 'paths' in opts:
+            for path in opts['paths']:
+                paths.append('|'.join(params + [unicode(p) for p in path]))
+        return '&path='.join(paths)
+
+    def getMap(self):
+        return self._map
+
+    def getPath(self):
+        return (self.getPaths() or [None])[0]
+
+    def setOptions(self, options):
+        if options and 'map' in options:
+            if self._map:
+                # Remove this polygon from the map.
+                self._map['pgn'].remove(self)
+            # Save new map reference.
+            self._map = options.pop('map')
+            if self._map:
+                # Add this polygon to the map.
+                self._map.setdefault('pgn', []).append(self)
+        super(Polygon, self).setOptions(options)
+
+    def setPath(self, path):
+        self.setPaths([path])
 
 
 class Geocoder(object):

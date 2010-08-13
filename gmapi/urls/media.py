@@ -10,7 +10,7 @@ if settings.DEBUG:
 """
 from os import path
 from django.conf import settings
-from django.conf.urls.defaults import * # pylint: disable-msg=W0401,W0614
+from django.conf.urls.defaults import *
 from urlparse import urljoin
 
 
