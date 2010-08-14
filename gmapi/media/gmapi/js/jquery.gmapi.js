@@ -271,14 +271,8 @@ jQuery(function($) {
                     mapdiv.removeClass();
                     div.applyMap($.parseJSON(data));
                     var mapimg = div.children('img');
-                    var t = window.setTimeout(function() {
-                        // tilesloaded doesn't always fire... so hide image
-                        // after 2 seconds as a failsafe.
-                        mapimg.css('z-index', -1);
-                    }, 2000);
                     google.maps.event.addListenerOnce(div.data('map'),
                         'tilesloaded', function() {
-                            window.clearTimeout(t);
                             mapimg.css('z-index', -1);
                         }
                     );
