@@ -543,6 +543,47 @@ def _parseGeocoderResult(result):
     return result
 
 
+class MapsEventListener(list):
+    pass
+
+
+class _event(object):
+    def addListener(self, instance, eventName, handlerName):
+        listener = MapsEventListener([eventName, handlerName])
+        instance.setdefault('evt', []).append(listener)
+        listener.instance = instance
+        return listener
+
+    def addListenerOnce(self, instance, eventName, handlerName):
+        listener = MapsEventListener([eventName, handlerName, True])
+        instance.setdefault('evt', []).append(listener)
+        listener.instance = instance
+        return listener
+
+    def clearInstanceListeners(self, instance):
+        if 'evt' in instance:
+            del instance['evt']
+
+    def clearListeners(self, instance, eventName):
+        if 'evt' in instance:
+            for listener in instance['evt']:
+                if listener[0] == eventName:
+                    instance['evt'].remove(listener)
+            if not instance['evt']:
+                del instance['evt']
+
+    def removeListener(self, listener):
+        instance = listener.instance
+        if 'evt' in instance:
+            if listener in instance['evt']:
+                instance['evt'].remove(listener)
+            if not instance['evt']:
+                del instance['evt']
+
+
+event = _event()
+
+
 class LatLng(MapClass):
     """A point in geographical coordinates, latitude and longitude.
 

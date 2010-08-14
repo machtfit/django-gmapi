@@ -13,32 +13,60 @@ jQuery(function($) {
     function property(path, context) {
         context = context || window.google.maps;
         path = path.split('.');
-        if (path.length > 1) {
-            return property(path.slice(1).join('.'), context[path[0]]);
+        if (path[0] in context) {
+            if (path.length > 1) {
+                return property(path.slice(1).join('.'), context[path[0]]);
+            }
+            else {
+                return context[path[0]];
+            }
         }
         else {
-            return context[path[0]];
+            throw new Error(path[0] + ' not found!');
         }
     }
 
     // Link an InfoWindow to a Map or Marker.
-    // Creates 3 new functions on the Map or Marker:
-    //   openInfo, closeInfo, and getInfo
+    // Adds 3 new functions to the Map or Marker:
+    //   openInfoWindow, closeInfoWindow, and getInfoWindow
+    // If a Marker, adds a getMarker function to the InfoWindow.
     function linkInfo(obj, info) {
-        obj.openInfo = function() {
-            if (obj instanceof google.maps.Map) {
-                info.open(obj);
-            }
-            else if (obj instanceof google.maps.Marker) {
+        obj.openInfoWindow = function() {
+            if (obj instanceof google.maps.Marker) {
                 info.open(obj.getMap(), obj);
             }
+            else {
+                info.open(obj);
+            }
         };
-        obj.closeInfo = function() {
+        obj.closeInfoWindow = function() {
             info.close();
         };
-        obj.getInfo = function() {
+        obj.getInfoWindow = function() {
             return info;
         };
+        if (obj instanceof google.maps.Marker) {
+            info.getMarker = function() {
+                return obj;
+            };
+        }
+    }
+
+    // Add events to an object.
+    function addEvents(obj, events) {
+        for (e in events) {
+            (function(eventName, handlerName, once) {
+                var handler = function() {
+                    property(handlerName, window).apply(this, arguments);
+                };
+                if (once) {
+                    google.maps.event.addListenerOnce(obj, eventName, handler);
+                }
+                else {
+                    google.maps.event.addListener(obj, eventName, handler);
+                }
+            }).apply(this, events[e]);
+        }
     }
 
     // Traverses any plain object or array. When an object with valid keys
@@ -70,6 +98,10 @@ jQuery(function($) {
                 // Handle an associated InfoWindow.
                 if (obj.nfo) {
                     linkInfo(o, parse(obj.nfo, div));
+                }
+                // Handle events.
+                if (obj.evt) {
+                    addEvents(o, obj.evt);
                 }
                 return o;
             }
@@ -122,8 +154,6 @@ jQuery(function($) {
             }
             // Remove from div data.
             div.removeData(name);
-            // Send a remove_objects trigger.
-            div.trigger('remove_' + name, [objects]);
         }
     }
 
@@ -146,8 +176,6 @@ jQuery(function($) {
                 }
                 // Save the marker array to div data.
                 div.data(name, objects);
-                // Send a add_objects trigger.
-                div.trigger('add_' + name, [objects]);
             }
         }
     }
@@ -172,8 +200,6 @@ jQuery(function($) {
                     map.fitBounds(bounds);
                 }
             }
-            // Send a fit_objects trigger.
-            div.trigger('fit_' + name, [objects]);
         }
     }
 
@@ -206,7 +232,7 @@ jQuery(function($) {
         fitPolygons: function(zoom) {
             return this.each(fitObjects('polygons', zoom));
         },
-        newMap: function(obj) {
+        applyMap: function(obj) {
             var objects = Array();
             objects['mkr'] = 'markers';
             objects['pln'] = 'polylines';
@@ -234,33 +260,34 @@ jQuery(function($) {
                         }
                     }
                 }
-                // Send a new_map trigger.
-                div.trigger('new_map');
+            });
+        },
+        initMap: function() {
+            return this.each(function() {
+                var div = $(this);
+                var mapdiv = div.children('div');
+                var data = (mapdiv.attr('class').match(/{.*}/) || [])[0];
+                if (data) {
+                    mapdiv.removeClass();
+                    div.applyMap($.parseJSON(data));
+                    var mapimg = div.children('img');
+                    var t = window.setTimeout(function() {
+                        // tilesloaded doesn't always fire... so hide image
+                        // after 2 seconds as a failsafe.
+                        mapimg.css('z-index', -1);
+                    }, 2000);
+                    google.maps.event.addListenerOnce(div.data('map'),
+                        'tilesloaded', function() {
+                            window.clearTimeout(t);
+                            mapimg.css('z-index', -1);
+                        }
+                    );
+                }
             });
         }
     });
 
     // Startup: Find any maps and initialize them.
-    $('div.gmap:visible').each(function() {
-        var div = $(this);
-        var mapdiv = div.children('div');
-        var data = (mapdiv.attr('class').match(/{.*}/) || [])[0];
-        if (data) {
-            mapdiv.removeClass();
-            div.newMap($.parseJSON(data));
-            var mapimg = div.children('img');
-            var t = window.setTimeout(function() {
-                // tilesloaded doesn't always fire... so hide image after 2
-                // seconds as a failsafe.
-                mapimg.css('z-index', -1);
-            }, 2000);
-            google.maps.event.addListenerOnce(div.data('map'), 'tilesloaded',
-                function() {
-                    window.clearTimeout(t);
-                    mapimg.css('z-index', -1);
-                }
-            );
-        }
-    });
+    $('div.gmap:visible').initMap();
 
 });
