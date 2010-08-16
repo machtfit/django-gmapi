@@ -1,5 +1,4 @@
-jQuery(function($) {
-
+(function($) {
     // Return new instance of a class using an array of parameters.
     function instance(constructor, args) {
         function F() {
@@ -76,8 +75,10 @@ jQuery(function($) {
     //
     // Valid keys:
     //   cls    The name of a class constructor (descendant of google.maps).
-    //   arg    Array of positional parameters for class constructor.
-    //   div    Placeholder for DOM node. Contains styles to be applied.
+    //     arg  Array of positional parameters for class constructor.
+    //     nfo  Associated Info Window for class constructor.
+    //     evt  Associated Maps Event Listeners for class constructor.
+    //   div    Placeholder for DOM node.
     //   val    The name of a property or constant (descendant of google.maps).
     function parse(obj, div) {
         // Handle a div.
@@ -154,7 +155,7 @@ jQuery(function($) {
             }
             // Remove from div data.
             div.removeData(name);
-        }
+        };
     }
 
     // Add and render an array of objects.
@@ -177,7 +178,7 @@ jQuery(function($) {
                 // Save the marker array to div data.
                 div.data(name, objects);
             }
-        }
+        };
     }
 
     // Fit the map to the objects.
@@ -200,7 +201,7 @@ jQuery(function($) {
                     map.fitBounds(bounds);
                 }
             }
-        }
+        };
     }
 
     // Add our custom methods to jQuery.
@@ -280,8 +281,9 @@ jQuery(function($) {
             });
         }
     });
+})(jQuery);
 
+jQuery(function($) {
     // Startup: Find any maps and initialize them.
     $('div.gmap:visible').initMap();
-
 });

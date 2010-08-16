@@ -638,19 +638,10 @@ class LatLngBounds(MapClass):
     def __unicode__(self):
         return self.toUrlValue()
 
-    def contains(self, point):
-        raise NotImplementedError
-
     def equals(self, other):
         # Check if our corners are equal.
         return (self.getSouthWest().equals(other.getSouthWest()) and
                 self.getNorthEast().equals(other.getNorthEast()))
-
-    def extend(self, point):
-        raise NotImplementedError
-
-    def getCenter(self):
-        raise NotImplementedError
 
     def getNorthEast(self):
         return self['arg'].get('ne')
@@ -658,17 +649,11 @@ class LatLngBounds(MapClass):
     def getSouthWest(self):
         return self['arg'].get('sw')
 
-    def intersects(self, other):
-        raise NotImplementedError
-
     def isEmpty(self):
         return ((not self.getSouthWest()) or
                 (self.getNorthEast() and
                  self.getSouthWest().lat() >
                  self.getNorthEast().lat()))
-
-    def toSpan(self):
-        raise NotImplementedError
 
     def toString(self):
         return '(%s, %s)' % (self.getSouthWest().toString(),
@@ -677,9 +662,6 @@ class LatLngBounds(MapClass):
     def toUrlValue(self, precision=6):
         return '%s,%s' % (self.getSouthWest().toUrlValue(precision),
                           self.getNorthEast().toUrlValue(precision))
-
-    def union(self, other):
-        raise NotImplementedError
 
 
 class Point(MapClass):
