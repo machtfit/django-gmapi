@@ -281,9 +281,8 @@
             });
         }
     });
-})(jQuery);
-
-jQuery(function($) {
-    // Startup: Find any maps and initialize them.
-    $('div.gmap:visible').initMap();
-});
+    $(function() {
+        // Startup: Find any maps and initialize them.
+        $('div.gmap:visible').initMap();
+    });
+})(jQuery || django.jQuery);
