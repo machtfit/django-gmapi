@@ -10,11 +10,8 @@ def urlencode(query, doseq=0, safe=''):
     safe = safe + '|,:'
     if hasattr(query, 'items'):
         query = query.items()
-    if not doseq:
-        return '&'.join([urlquote_plus(k, safe) + '=' + urlquote_plus(v, safe)
-                         for k, v in query])
-    else:
-        return '&'.join([urlquote_plus(k, safe) + '=' + urlquote_plus(v, safe)
-                         for k, s in query
-                         for v in ((isinstance(s, basestring) and [s]) or
-                                   (hasattr(s, '__len__') and s) or [s])])
+    return '&'.join([urlquote_plus(k, safe) + '=' + urlquote_plus(v, safe)
+                     for k, s in query
+                     for v in ((isinstance(s, basestring) and [s])
+                               or (doseq and hasattr(s, '__len__') and s)
+                               or [s])])
