@@ -110,24 +110,23 @@ class Map(MapClass):
 
         """
         opts = self['arg'].get('opts', {})
-        params = {}
+        params = []
         for p in ['center', 'zoom', 'size', 'format', 'language']:
             if p in opts:
-                params[p] = unicode(opts[p])
+                params.append((p, unicode(opts[p])))
         if 'mapTypeId' in opts:
-            params['maptype'] = unicode(opts['mapTypeId'])
-        if 'mobile' in opts:
-            params['mobile'] = 'true' if opts['mobile'] else 'false'
+            params.append(('maptype', unicode(opts['mapTypeId'])))
         if 'visible' in opts:
-            params['visible'] = '|'.join([unicode(v) for v in opts['visible']])
+            params.append(('visible', '|'.join([unicode(v)
+                                                for v in opts['visible']])))
         if 'mkr' in self:
-            params['markers'] = [unicode(m) for m in self['mkr']]
+            params.append(('markers', [unicode(m) for m in self['mkr']]))
         if 'pln' in self:
-            params['path'] = [unicode(p) for p in self['pln']]
+            params.append(('path', [unicode(p) for p in self['pln']]))
         if 'pgn' in self:
-            params['path'] = [q for p in self['pgn']
-                              for q in unicode(p).split('&path=')]
-        params['sensor'] = 'true' if opts.get('sensor') else 'false'
+            params.append(('path', [q for p in self['pgn']
+                                    for q in unicode(p).split('&path=')]))
+        params.append(('sensor', 'true' if opts.get('sensor') else 'false'))
         return '%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
 
     def _markers(self):
@@ -250,16 +249,10 @@ class Marker(MapClass):
             self._color = options.pop('color', self._color)
             self._label = options.pop('label', self._label)
             if (self._color or self._label) and 'icon' not in options:
-                options['icon'] = ('%s?%s' % (CHART_URL,
-                     urlencode({'chst': 'd_map_pin_letter',
-                                'chld': '|'.join([
-                                    self._label or '',
-                                    (self._color or 'FF6357').lstrip('0x')])
-                                })
-                ))
-                options['shadow'] = ('%s?%s' % (CHART_URL,
-                     urlencode({'chst': 'd_map_pin_letter'})
-                ))
+                options['icon'] = ('%s?chst=d_map_pin_letter&chld=%s|%s' %
+                                   (CHART_URL, self._label or '',
+                                    (self._color or 'FF6357').lstrip('0x')))
+                options['shadow'] = '%s?chst=d_map_pin_shadow' % CHART_URL
             elif 'icon' in options:
                 self._color = None
                 self._label = None
