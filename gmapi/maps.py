@@ -249,10 +249,13 @@ class Marker(MapClass):
             self._color = options.pop('color', self._color)
             self._label = options.pop('label', self._label)
             if (self._color or self._label) and 'icon' not in options:
-                options['icon'] = ('%s?chst=d_map_pin_letter&chld=%s|%s' %
-                                   (CHART_URL, self._label or '',
-                                    (self._color or 'FF6357').lstrip('0x')))
-                options['shadow'] = '%s?chst=d_map_pin_shadow' % CHART_URL
+                l = self._label or u'\u2022'
+                c = (self._color or 'FF776B').lstrip('0x')
+                options['icon'] = MarkerImage('%s?chst=d_map_pin_letter'
+                                              '&chld=%s|%s' % (CHART_URL, l, c),
+                                              anchor=Point(10, 33))
+                options['shadow'] = MarkerImage('%s?chst=d_map_pin_shadow' %
+                                                CHART_URL, anchor=Point(12, 35))
             elif 'icon' in options:
                 self._color = None
                 self._label = None
@@ -752,7 +755,6 @@ class Degree(float):
         return float.__new__(cls, value)
 
     def __init__(self, value, precision=6):
-        super(Degree, self).__init__()
         self.precision = precision
 
     def __repr__(self):
