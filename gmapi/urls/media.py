@@ -20,16 +20,15 @@ MEDIA_ROOT = getattr(settings, 'GMAPI_MEDIA_ROOT',
                      path.dirname(__file__)), 'media', 'gmapi')))
 
 # Same rules apply as ADMIN_MEDIA_PREFIX.
-MEDIA_PREFIX = getattr(settings, 'GMAPI_MEDIA_PREFIX',
-                       urljoin(settings.MEDIA_URL, 'gmapi/').lstrip('/'))
+# Omit leading slash to make relative to MEDIA_URL.
+MEDIA_PREFIX = getattr(settings, 'GMAPI_MEDIA_PREFIX', 'gmapi/')
 
 
-urlpatterns = []
-
-
-if not (MEDIA_PREFIX.startswith(u'http://') or
-        MEDIA_PREFIX.startswith(u'https://')):
+if MEDIA_PREFIX.startswith('http://') or MEDIA_PREFIX.startswith('https://'):
+    urlpatterns = []
+else:
     urlpatterns = patterns('',
-        (r'^%s(?P<path>.*)$' % MEDIA_PREFIX, 'django.views.static.serve',
-         {'document_root': MEDIA_ROOT}),
+        (r'^%s(?P<path>.*)$' %
+         urljoin(settings.MEDIA_URL, MEDIA_PREFIX).lstrip('/'),
+         'django.views.static.serve', {'document_root': MEDIA_ROOT}),
     )

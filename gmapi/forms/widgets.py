@@ -7,6 +7,7 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.simplejson import dumps
 from gmapi import maps
+from urlparse import urljoin
 
 
 JQUERY_URL = getattr(settings, 'GMAPI_JQUERY_URL',
@@ -17,7 +18,7 @@ MAPS_URL = getattr(settings, 'GMAPI_MAPS_URL',
                    'http://maps.google.com/maps/api/js?sensor=false')
 
 # Same rules apply as ADMIN_MEDIA_PREFIX.
-# The default will have MEDIA_URL prepended later.
+# Omit leading slash to make relative to MEDIA_URL.
 MEDIA_PREFIX = getattr(settings, 'GMAPI_MEDIA_PREFIX', 'gmapi/')
 
 
@@ -56,8 +57,8 @@ class GoogleMap(Widget):
             js.append(JQUERY_URL)
         if not self.nomapsjs:
             js.append(MAPS_URL)
-        js.append('%sjs/jquery.gmapi%s.js' %
-                  (MEDIA_PREFIX, ('' if settings.DEBUG else '.min')))
+        js.append(urljoin(MEDIA_PREFIX, 'js/jquery.gmapi%s.js' %
+                  ('' if settings.DEBUG else '.min')))
         return Media(js=js)
 
     media = property(_media)

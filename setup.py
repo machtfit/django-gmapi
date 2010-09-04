@@ -25,7 +25,7 @@ for dirpath, dirnames, filenames in os.walk('gmapi'):
 
 
 setup(name='django-gmapi',
-      version='1.0.0',
+      version='1.0.1',
       description='A Google Maps API implementation for Django',
       author='David Bennett',
       author_email='ungenio@gmail.com',
@@ -39,6 +39,7 @@ setup(name='django-gmapi',
                    'License :: OSI Approved :: MIT License',
                    'Operating System :: OS Independent',
                    'Programming Language :: Python',
-                   'Topic :: Software Development :: Libraries :: Python Modules',
+                   'Topic :: Software Development :: '
+                   'Libraries :: Python Modules',
                    'Topic :: Utilities'],
       )

@@ -233,6 +233,22 @@
         fitPolygons: function(zoom) {
             return this.each(fitObjects('polygons', zoom));
         },
+        getMarkers: function() {
+            // If 'this' is a collection, only returns objects from first.
+            return this.data('markers');
+        },
+        getPolylines: function() {
+            // If 'this' is a collection, only returns objects from first.
+            return this.data('polylines');
+        },
+        getPolygons: function() {
+            // If 'this' is a collection, only returns objects from first.
+            return this.data('polygons');
+        },
+        getMap: function() {
+            // If 'this' is a collection, only returns objects from first.
+            return this.data('map');
+        },
         applyMap: function(obj) {
             var objects = Array();
             objects['mkr'] = 'markers';

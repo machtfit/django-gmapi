@@ -226,7 +226,8 @@ class Marker(MapClass):
         elif 'icon' in opts:
             params.append('icon:%s' % opts['icon'])
             if 'shadow' in opts:
-                params.append('shadow:%s' % 'true' if opts['shadow'] else 'false')
+                params.append('shadow:%s' %
+                              'true' if opts['shadow'] else 'false')
         if 'position' in opts:
             params.append(unicode(opts['position']))
         return '|'.join(params)
@@ -457,6 +458,7 @@ class Geocoder(object):
     # Handle blocking and sleeping at class level.
     _block = False
     _sleep = 0
+    _last = 0
 
     def geocode(self, request, callback=None):
         """Geocode a request.
@@ -482,35 +484,37 @@ class Geocoder(object):
         for _ in xrange(30):
             # Check if result is already cached.
             data = cache.get(cache_key)
-            nocache = data is None
-            if nocache:
-                # Wait a bit so that we don't make requests too fast.
-                time.sleep(self._sleep)
+            if data is None:
+                if (max(0, time.time() - self.__class__._last) <
+                    self.__class__._sleep):
+                    # Wait a bit so that we don't make requests too fast.
+                    time.sleep(max(0, self.__class__._sleep +
+                                      self.__class__._last - time.time()))
                 data = urllib.urlopen(url).read()
+                self.__class__._last = time.time()
             response = loads(data)
             status = response['status']
 
             if status == 'OVER_QUERY_LIMIT':
                 # Over limit, increase delay a bit.
-                if self._block:
+                if self.__class__._block:
                     break
-                self._sleep += .1
+                self.__class__._sleep += .1
             else:
                 # Save results to cache.
-                if nocache:
-                    cache.set(cache_key, data)
+                cache.set(cache_key, data)
                 if status == 'OK':
                     # Successful query, clear block if there is one.
-                    if self._block:
-                        self._block = False
-                        self._sleep = 0
+                    if self.__class__._block:
+                        self.__class__._block = False
+                        self.__class__._sleep = 0
                     results = _parseGeocoderResult(response['results'])
                     if callback:
                         callback(results, status)
                     return results, status
                 else:
                     return None, status
-        self._block = True
+        self.__class__._block = True
         raise SystemError('Geocoding has failed too many times. '
                           'You might have exceeded your daily limit.')
 
