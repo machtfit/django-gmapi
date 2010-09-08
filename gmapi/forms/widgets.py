@@ -10,9 +10,11 @@ from gmapi import maps
 from urlparse import urljoin
 
 
+JSMIN = getattr(settings, 'GMAPI_JSMIN', not settings.DEBUG) and '.min' or ''
+
 JQUERY_URL = getattr(settings, 'GMAPI_JQUERY_URL',
-                     'http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery'
-                     '%s.js' % ('' if settings.DEBUG else '.min'))
+                     'http://ajax.googleapis.com/ajax/libs/jquery/1.4/'
+                     'jquery%s.js' % JSMIN)
 
 MAPS_URL = getattr(settings, 'GMAPI_MAPS_URL',
                    'http://maps.google.com/maps/api/js?sensor=false')
@@ -31,7 +33,7 @@ class GoogleMap(Widget):
     def render(self, name, gmap, attrs=None):
         if gmap is None:
             gmap = maps.Map()
-        default_attrs = {'id': name, 'class': 'gmap'}
+        default_attrs = {'id': name, 'class': u'gmap'}
         if attrs:
             default_attrs.update(attrs)
         final_attrs = self.build_attrs(default_attrs)
@@ -57,8 +59,7 @@ class GoogleMap(Widget):
             js.append(JQUERY_URL)
         if not self.nomapsjs:
             js.append(MAPS_URL)
-        js.append(urljoin(MEDIA_PREFIX, 'js/jquery.gmapi%s.js' %
-                  ('' if settings.DEBUG else '.min')))
+        js.append(urljoin(MEDIA_PREFIX, 'js/jquery.gmapi%s.js' % JSMIN))
         return Media(js=js)
 
     media = property(_media)

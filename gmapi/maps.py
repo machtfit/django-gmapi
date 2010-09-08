@@ -66,7 +66,7 @@ class MapConstant(MapClass):
         raise KeyError, key
 
     def __unicode__(self):
-        return self.const.lower()
+        return force_unicode(self.const.lower())
 
 
 class MapConstantClass(object):
@@ -117,17 +117,17 @@ class Map(MapClass):
         if 'mapTypeId' in opts:
             params.append(('maptype', unicode(opts['mapTypeId'])))
         if 'visible' in opts:
-            params.append(('visible', '|'.join([unicode(v)
-                                                for v in opts['visible']])))
+            params.append(('visible', u'|'.join([unicode(v)
+                                                 for v in opts['visible']])))
         if 'mkr' in self:
             params.append(('markers', [unicode(m) for m in self['mkr']]))
         if 'pln' in self:
             params.append(('path', [unicode(p) for p in self['pln']]))
         if 'pgn' in self:
             params.append(('path', [q for p in self['pgn']
-                                    for q in unicode(p).split('&path=')]))
-        params.append(('sensor', 'true' if opts.get('sensor') else 'false'))
-        return '%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
+                                    for q in unicode(p).split(u'&path=')]))
+        params.append(('sensor', u'true' if opts.get('sensor') else u'false'))
+        return u'%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
 
     def _markers(self):
         return self.get('mkr', [])
@@ -217,20 +217,20 @@ class Marker(MapClass):
         opts = self['arg'].get('opts', {})
         params = []
         if self._size:
-            params.append('size:%s' % self._size)
+            params.append(u'size:%s' % self._size)
         if self._color or self._label:
             if self._color:
-                params.append('color:%s' % self._color)
+                params.append(u'color:%s' % self._color)
             if self._label:
-                params.append('label:%s' % self._label)
+                params.append(u'label:%s' % self._label)
         elif 'icon' in opts:
-            params.append('icon:%s' % opts['icon'])
+            params.append(u'icon:%s' % opts['icon'])
             if 'shadow' in opts:
-                params.append('shadow:%s' %
-                              'true' if opts['shadow'] else 'false')
+                params.append(u'shadow:%s' %
+                              u'true' if opts['shadow'] else u'false')
         if 'position' in opts:
             params.append(unicode(opts['position']))
-        return '|'.join(params)
+        return u'|'.join(params)
 
     def getMap(self):
         return self._map
@@ -287,7 +287,7 @@ class MarkerImage(MapClass):
             self['arg'].setdefault('scaledSize', scaledSize)
 
     def __unicode__(self):
-        return self['arg'].get('url')
+        return force_unicode(self['arg'].get('url'))
 
 
 class Polyline(MapClass):
@@ -316,15 +316,15 @@ class Polyline(MapClass):
         opts = self['arg'].get('opts', {})
         params = []
         if 'strokeColor' in opts:
-            color = 'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
+            color = u'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
             if 'strokeOpacity' in opts:
-                color += '%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
             params.append(color)
         if 'strokeWeight' in opts:
-            params.append('weight:%d' % opts['strokeWeight'])
+            params.append(u'weight:%d' % opts['strokeWeight'])
         if 'path' in opts:
-            params.append('|'.join([unicode(p) for p in opts['path']]))
-        return '|'.join(params)
+            params.append(u'|'.join([unicode(p) for p in opts['path']]))
+        return u'|'.join(params)
 
     def getMap(self):
         return self._map
@@ -369,25 +369,25 @@ class Polygon(MapClass):
         params = []
         paths = []
         if 'fillColor' in opts:
-            fillcolor = ('fillcolor:0x%s' %
+            fillcolor = (u'fillcolor:0x%s' %
                          opts['fillColor'].lstrip('#').lower())
             if 'fillOpacity' in opts:
-                fillcolor += ('%02x' %
+                fillcolor += (u'%02x' %
                               min(max(opts['fillOpacity'] * 255, 0), 255))
             params.append(fillcolor)
         if 'strokeColor' in opts:
-            color = 'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
+            color = u'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
             if 'strokeOpacity' in opts:
-                color += '%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
             params.append(color)
         if 'strokeWeight' in opts:
-            params.append('weight:%d' % opts['strokeWeight'])
+            params.append(u'weight:%d' % opts['strokeWeight'])
         if 'paths' in opts:
             for path in opts['paths']:
-                loop = ['' if path[-1].equals(path[0]) else unicode(path[0])]
-                paths.append('|'.join(params + [unicode(p) for p in path] +
-                                      loop))
-        return '&path='.join(paths)
+                loop = [u'' if path[-1].equals(path[0]) else unicode(path[0])]
+                paths.append(u'|'.join(params + [unicode(p) for p in path] +
+                                       loop))
+        return u'&path='.join(paths)
 
     def getMap(self):
         return self._map
@@ -599,7 +599,7 @@ class LatLng(MapClass):
             self['arg'].setdefault('noWrap', noWrap)
 
     def __unicode__(self):
-        return self.toUrlValue()
+        return force_unicode(self.toUrlValue())
 
     def equals(self, other):
         return (self.lat() == other.lat() and self.lng() == other.lng())
@@ -636,7 +636,7 @@ class LatLngBounds(MapClass):
             self['arg'].setdefault('ne', ne)
 
     def __unicode__(self):
-        return self.toUrlValue()
+        return force_unicode(self.toUrlValue())
 
     def equals(self, other):
         # Check if our corners are equal.
@@ -677,8 +677,7 @@ class Point(MapClass):
         self['arg'] = Args(['x', 'y'], [x, y])
 
     def __unicode__(self):
-        return '%s,%s' % (self['arg'].get('x', 0),
-                          self['arg'].get('y', 0))
+        return u'%s,%s' % (self['arg'].get('x', 0), self['arg'].get('y', 0))
 
     def _getX(self):
         return self['arg'][0]
@@ -721,8 +720,8 @@ class Size(MapClass):
             self['arg'].setdefault('heightUnit', heightUnit)
 
     def __unicode__(self):
-        return '%sx%s' % (self['arg'].get('width', 0),
-                          self['arg'].get('height', 0))
+        return u'%sx%s' % (self['arg'].get('width', 0),
+                           self['arg'].get('height', 0))
 
     def _getHeight(self):
         return self['arg'][1]
@@ -765,7 +764,7 @@ class Degree(float):
         return (('%%0.%df' % self.precision) % self).rstrip('0').rstrip('.')
 
     def __unicode__(self):
-        return self.__repr__()
+        return force_unicode(self.__repr__())
 
     def __str__(self):
         return self.__repr__()
