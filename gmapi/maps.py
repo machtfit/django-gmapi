@@ -20,25 +20,6 @@ CHART_URL = getattr(settings, 'GMAPI_CHART_URL',
 
 class MapClass(dict):
     """A base class for Google Maps API classes."""
-    _getopts = {}
-    _setopts = {}
-
-    def __getattr__(self, item):
-        """Handle generic get and set option methods."""
-        if 'arg' in self:
-            if item in self._getopts:
-                key = self._getopts[item]
-                def func():
-                    return self['arg'].get('opts', {}).get(key)
-                return func
-            if item in self._setopts:
-                key = self._setopts[item]
-                def func(value):
-                    # Call setOptions so that it can be overridden.
-                    self.setOptions({key: value})
-                return func
-        raise AttributeError, item
-
     def __str__(self):
         """Handle string conversion."""
         if hasattr(self, '__unicode__'):
@@ -50,30 +31,15 @@ class MapClass(dict):
             self['arg'].setdefault('opts', {}).update(opts)
 
 
-class MapConstant(MapClass):
-    """A custom constant class.
-
-    For holding special Google Maps constants. When parsed by
-    JSONEncoder and subsequently by our custom jQuery plugin,
-    it will be converted to the actual constant value.
-
-    """
-    def __init__(self, cls, const):
-        super(MapConstant, self).__init__(val='%s.%s' % (cls, const))
-        self.const = const
-
-    def __setitem__(self, key, value):
-        raise KeyError, key
-
-    def __unicode__(self):
-        return self.const.lower()
+def _getMethod(key):
+    """Helper function for generating generic get methods."""
+    return lambda self: self['arg'].get('opts', {}).get(key)
 
 
-class MapConstantClass(object):
-    """A custom factory class for constants."""
-    def __init__(self, name, constants):
-        for const in constants:
-            setattr(self, const, MapConstant(name, const))
+def _setMethod(key):
+    """Helper function for generating generic set methods."""
+    # Call setOptions so that it can be overridden.
+    return lambda self, value: self.setOptions({key: value})
 
 
 class Map(MapClass):
@@ -84,16 +50,13 @@ class Map(MapClass):
     converted to an actual google.maps.Map instance.
 
     """
-    _getopts = {
-        'getCenter': 'center',
-        'getMapTypeId': 'mapTypeId',
-        'getZoom': 'zoom',
-    }
-    _setopts = {
-        'setCenter': 'center',
-        'setMapTypeId': 'mapTypeId',
-        'setZoom': 'zoom',
-    }
+    getCenter, getMapTypeId, getZoom = [
+        _getMethod(k) for k in ['center', 'mapTypeId', 'zoom']
+    ]
+
+    setCenter, setMapTypeId, setZoom = [
+        _setMethod(k) for k in ['center', 'mapTypeId', 'zoom']
+    ]
 
     def __init__(self, opts=None):
         """mapDiv is not used, so not included in parameters."""
@@ -117,55 +80,82 @@ class Map(MapClass):
         if 'mapTypeId' in opts:
             params.append(('maptype', unicode(opts['mapTypeId'])))
         if 'visible' in opts:
-            params.append(('visible', '|'.join([unicode(v)
-                                                for v in opts['visible']])))
+            params.append(('visible', u'|'.join([unicode(v)
+                                                 for v in opts['visible']])))
         if 'mkr' in self:
             params.append(('markers', [unicode(m) for m in self['mkr']]))
         if 'pln' in self:
             params.append(('path', [unicode(p) for p in self['pln']]))
         if 'pgn' in self:
             params.append(('path', [q for p in self['pgn']
-                                    for q in unicode(p).split('&path=')]))
-        params.append(('sensor', 'true' if opts.get('sensor') else 'false'))
-        return '%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
+                                    for q in unicode(p).split(u'&path=')]))
+        params.append(('sensor', u'true' if opts.get('sensor') else u'false'))
+        return u'%s?%s' % (STATIC_URL, urlencode(params, doseq=True))
 
-    def _markers(self):
+    @property
+    def markers(self):
         return self.get('mkr', [])
 
-    markers = property(_markers)
-
-    def _polylines(self):
+    @property
+    def polylines(self):
         return self.get('pln', [])
 
-    polylines = property(_polylines)
-
-    def _polygons(self):
+    @property
+    def polygons(self):
         return self.get('pgn', [])
 
-    polygons = property(_polygons)
+
+class MapConstant(MapClass):
+    """A custom constant class.
+
+    For holding special Google Maps constants. When parsed by
+    JSONEncoder and subsequently by our custom jQuery plugin,
+    it will be converted to the actual constant value.
+
+    """
+    def __init__(self, cls, const):
+        super(MapConstant, self).__init__(val='%s.%s' % (cls, const))
+        self.const = const
+
+    def __setitem__(self, key, value):
+        raise KeyError, key
+
+    def __unicode__(self):
+        return force_unicode(self.const.lower())
 
 
-MapTypeId = MapConstantClass('MapTypeId',
-                             ('HYBRID', 'ROADMAP', 'SATELLITE', 'TERRAIN',))
+class MapTypeId(object):
+    HYBRID, ROADMAP, SATELLITE, TERRAIN = [
+        MapConstant('MapTypeId', c) for c in
+        ['HYBRID', 'ROADMAP', 'SATELLITE', 'TERRAIN']
+    ]
 
 
-MapTypeControlStyle = MapConstantClass('MapTypeControlStyle',
-                                       ('DEFAULT', 'DROPDOWN_MENU',
-                                        'HORIZONTAL_BAR',))
+class MapTypeControlStyle(object):
+    DEFAULT, DROPDOWN_MENU, HORIZONTAL_BAR = [
+        MapConstant('MapTypeControlStyle', c) for c in
+        ['DEFAULT', 'DROPDOWN_MENU', 'HORIZONTAL_BAR']
+    ]
 
 
-NavigationControlStyle = MapConstantClass('NavigationControlStyle',
-                                          ('ANDROID', 'DEFAULT', 'SMALL',
-                                           'ZOOM_PAN',))
+class NavigationControlStyle(object):
+    ANDROID, DEFAULT, SMALL, ZOOM_PAN = [
+        MapConstant('NavigationControlStyle', c) for c in
+        ['ANDROID', 'DEFAULT', 'SMALL', 'ZOOM_PAN']
+    ]
 
 
-ScaleControlStyle = MapConstantClass('ScaleControlStyle', ('DEFAULT',))
+class ScaleControlStyle(object):
+    DEFAULT = MapConstant('ScaleControlStyle', 'DEFAULT')
 
 
-ControlPosition = MapConstantClass('ControlPosition',
-                                   ('BOTTOM', 'BOTTOM_LEFT', 'BOTTOM_RIGHT',
-                                    'LEFT', 'RIGHT', 'TOP', 'TOP_LEFT',
-                                    'TOP_RIGHT',))
+class ControlPosition(object):
+    BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT, LEFT, RIGHT, TOP, \
+    TOP_LEFT, TOP_RIGHT = [
+        MapConstant('ControlPosition', c) for c in
+        ['BOTTOM', 'BOTTOM_LEFT', 'BOTTOM_RIGHT', 'LEFT', 'RIGHT', 'TOP',
+         'TOP_LEFT', 'TOP_RIGHT']
+    ]
 
 
 class Marker(MapClass):
@@ -176,33 +166,19 @@ class Marker(MapClass):
     converted to an actual google.maps.Marker instance.
 
     """
-    _getopts = {
-        'getClickable': 'clickable',
-        'getCursor': 'cursor',
-        'getDraggable': 'draggable',
-        'getFlat': 'flat',
-        'getIcon': 'icon',
-        'getPosition': 'position',
-        'getShadow': 'shadow',
-        'getShape': 'shape',
-        'getTitle': 'title',
-        'getVisible': 'visible',
-        'getZIndex': 'zIndex',
-    }
-    _setopts = {
-        'setClickable': 'clickable',
-        'setCursor': 'cursor',
-        'setDraggable': 'draggable',
-        'setFlat': 'flat',
-        'setIcon': 'icon',
-        'setMap': 'map',
-        'setPosition': 'position',
-        'setShadow': 'shadow',
-        'setShape': 'shape',
-        'setTitle': 'title',
-        'setVisible': 'visible',
-        'setZIndex': 'zIndex',
-    }
+    getClickable, getCursor, getDraggable, getFlat, getIcon, getPosition, \
+    getShadow, getShape, getTitle, getVisible, getZIndex = [
+        _getMethod(k) for k in
+        ['clickable', 'cursor', 'draggable', 'flat', 'icon', 'position',
+         'shadow', 'shape', 'title', 'visible', 'zIndex']
+    ]
+
+    setClickable, setCursor, setDraggable, setFlat, setIcon, setMap, \
+    setPosition, setShadow, setShape, setTitle, setVisible, setZIndex = [
+        _setMethod(k) for k in
+        ['clickable', 'cursor', 'draggable', 'flat', 'icon', 'map',
+         'position', 'shadow', 'shape', 'title', 'visible', 'zIndex']
+    ]
 
     def __init__(self, opts=None):
         super(Marker, self).__init__(cls='Marker')
@@ -217,20 +193,20 @@ class Marker(MapClass):
         opts = self['arg'].get('opts', {})
         params = []
         if self._size:
-            params.append('size:%s' % self._size)
+            params.append(u'size:%s' % self._size)
         if self._color or self._label:
             if self._color:
-                params.append('color:%s' % self._color)
+                params.append(u'color:%s' % self._color)
             if self._label:
-                params.append('label:%s' % self._label)
+                params.append(u'label:%s' % self._label)
         elif 'icon' in opts:
-            params.append('icon:%s' % opts['icon'])
+            params.append(u'icon:%s' % opts['icon'])
             if 'shadow' in opts:
-                params.append('shadow:%s' %
-                              'true' if opts['shadow'] else 'false')
+                params.append(u'shadow:%s' %
+                              u'true' if opts['shadow'] else u'false')
         if 'position' in opts:
             params.append(unicode(opts['position']))
-        return '|'.join(params)
+        return u'|'.join(params)
 
     def getMap(self):
         return self._map
@@ -287,7 +263,7 @@ class MarkerImage(MapClass):
             self['arg'].setdefault('scaledSize', scaledSize)
 
     def __unicode__(self):
-        return self['arg'].get('url')
+        return force_unicode(self['arg'].get('url'))
 
 
 class Polyline(MapClass):
@@ -298,13 +274,11 @@ class Polyline(MapClass):
     converted to an actual google.maps.Polyline instance.
 
     """
-    _getopts = {
-        'getPath': 'path',
-    }
-    _setopts = {
-        'setMap': 'map',
-        'setPath': 'path',
-    }
+    getPath = _getMethod('path')
+
+    setMap, setPath = [
+        _setMethod(k) for k in ['map', 'path']
+    ]
 
     def __init__(self, opts=None):
         super(Polyline, self).__init__(cls='Polyline')
@@ -316,15 +290,15 @@ class Polyline(MapClass):
         opts = self['arg'].get('opts', {})
         params = []
         if 'strokeColor' in opts:
-            color = 'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
+            color = u'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
             if 'strokeOpacity' in opts:
-                color += '%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
             params.append(color)
         if 'strokeWeight' in opts:
-            params.append('weight:%d' % opts['strokeWeight'])
+            params.append(u'weight:%d' % opts['strokeWeight'])
         if 'path' in opts:
-            params.append('|'.join([unicode(p) for p in opts['path']]))
-        return '|'.join(params)
+            params.append(u'|'.join([unicode(p) for p in opts['path']]))
+        return u'|'.join(params)
 
     def getMap(self):
         return self._map
@@ -350,13 +324,11 @@ class Polygon(MapClass):
     converted to an actual google.maps.Polygon instance.
 
     """
-    _getopts = {
-        'getPaths': 'paths',
-    }
-    _setopts = {
-        'setMap': 'map',
-        'setPaths': 'paths',
-    }
+    getPaths = _getMethod('paths')
+
+    setMap, setPaths = [
+        _setMethod(k) for k in ['map', 'paths']
+    ]
 
     def __init__(self, opts=None):
         super(Polygon, self).__init__(cls='Polygon')
@@ -369,25 +341,25 @@ class Polygon(MapClass):
         params = []
         paths = []
         if 'fillColor' in opts:
-            fillcolor = ('fillcolor:0x%s' %
+            fillcolor = (u'fillcolor:0x%s' %
                          opts['fillColor'].lstrip('#').lower())
             if 'fillOpacity' in opts:
-                fillcolor += ('%02x' %
+                fillcolor += (u'%02x' %
                               min(max(opts['fillOpacity'] * 255, 0), 255))
             params.append(fillcolor)
         if 'strokeColor' in opts:
-            color = 'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
+            color = u'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
             if 'strokeOpacity' in opts:
-                color += '%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
             params.append(color)
         if 'strokeWeight' in opts:
-            params.append('weight:%d' % opts['strokeWeight'])
+            params.append(u'weight:%d' % opts['strokeWeight'])
         if 'paths' in opts:
             for path in opts['paths']:
-                loop = ['' if path[-1].equals(path[0]) else unicode(path[0])]
-                paths.append('|'.join(params + [unicode(p) for p in path] +
-                                      loop))
-        return '&path='.join(paths)
+                loop = [u'' if path[-1].equals(path[0]) else unicode(path[0])]
+                paths.append(u'|'.join(params + [unicode(p) for p in path] +
+                                       loop))
+        return u'&path='.join(paths)
 
     def getMap(self):
         return self._map
@@ -419,16 +391,15 @@ class InfoWindow(MapClass):
     converted to an actual google.maps.InfoWindow instance.
 
     """
-    _getopts = {
-        'getContent': 'content',
-        'getPosition': 'position',
-        'getZIndex': 'zIndex',
-    }
-    _setopts = {
-        'setContent': 'content',
-        'setPosition': 'position',
-        'setZIndex': 'zIndex',
-    }
+    getContent, getPosition, getZIndex = [
+        _getMethod(k) for k in
+        ['content', 'position', 'zIndex']
+    ]
+
+    setContent, setPosition, setZIndex = [
+        _setMethod(k) for k in
+        ['content', 'position', 'zIndex']
+    ]
 
     def __init__(self, opts=None):
         super(InfoWindow, self).__init__(cls='InfoWindow')
@@ -443,6 +414,30 @@ class InfoWindow(MapClass):
             anchor['nfo'] = self
         else:
             map['nfo'] = self
+
+
+def _parseGeocoderResult(result):
+    """ Parse Geocoder Results.
+
+    Traverses the results converting any latitude-longitude pairs
+    into instances of LatLng and any SouthWest-NorthEast pairs
+    into instances of LatLngBounds.
+
+    """
+    # Check for LatLng objects and convert.
+    if (isinstance(result, dict) and 'lat' in result and 'lng' in result):
+        result = LatLng(result['lat'], result['lng'])
+    # Continue traversing.
+    elif isinstance(result, dict):
+        for item in result:
+            result[item] = _parseGeocoderResult(result[item])
+        # Check for LatLngBounds objects and convert.
+        if ('southwest' in result and 'northeast' in result):
+            result = LatLngBounds(result['southwest'], result['northeast'])
+    elif isinstance(result, (list, tuple)):
+        for index in xrange(len(result)):
+            result[index] = _parseGeocoderResult(result[index])
+    return result
 
 
 class Geocoder(object):
@@ -519,52 +514,33 @@ class Geocoder(object):
                           'You might have exceeded your daily limit.')
 
 
-def _parseGeocoderResult(result):
-    """ Parse Geocoder Results.
-
-    Traverses the results converting any latitude-longitude pairs
-    into instances of LatLng and any SouthWest-NorthEast pairs
-    into instances of LatLngBounds.
-
-    """
-    # Check for LatLng objects and convert.
-    if (isinstance(result, dict) and 'lat' in result and 'lng' in result):
-        result = LatLng(result['lat'], result['lng'])
-    # Continue traversing.
-    elif isinstance(result, dict):
-        for item in result:
-            result[item] = _parseGeocoderResult(result[item])
-        # Check for LatLngBounds objects and convert.
-        if ('southwest' in result and 'northeast' in result):
-            result = LatLngBounds(result['southwest'], result['northeast'])
-    elif isinstance(result, (list, tuple)):
-        for index in xrange(len(result)):
-            result[index] = _parseGeocoderResult(result[index])
-    return result
-
-
 class MapsEventListener(list):
     pass
 
 
-class _event(object):
-    def addListener(self, instance, eventName, handlerName):
+class event(object):
+    """Event namespace. No need to instantiate. Just call methods directly."""
+    @staticmethod
+    def addListener(instance, eventName, handlerName):
         listener = MapsEventListener([eventName, handlerName])
         instance.setdefault('evt', []).append(listener)
         listener.instance = instance
         return listener
 
-    def addListenerOnce(self, instance, eventName, handlerName):
+    @staticmethod
+    def addListenerOnce(instance, eventName, handlerName):
         listener = MapsEventListener([eventName, handlerName, True])
         instance.setdefault('evt', []).append(listener)
         listener.instance = instance
         return listener
 
-    def clearInstanceListeners(self, instance):
+    @staticmethod
+    def clearInstanceListeners(instance):
         if 'evt' in instance:
             del instance['evt']
 
-    def clearListeners(self, instance, eventName):
+    @staticmethod
+    def clearListeners(instance, eventName):
         if 'evt' in instance:
             for listener in instance['evt']:
                 if listener[0] == eventName:
@@ -572,16 +548,14 @@ class _event(object):
             if not instance['evt']:
                 del instance['evt']
 
-    def removeListener(self, listener):
+    @staticmethod
+    def removeListener(listener):
         instance = listener.instance
         if 'evt' in instance:
             if listener in instance['evt']:
                 instance['evt'].remove(listener)
             if not instance['evt']:
                 del instance['evt']
-
-
-event = _event()
 
 
 class LatLng(MapClass):
@@ -599,7 +573,7 @@ class LatLng(MapClass):
             self['arg'].setdefault('noWrap', noWrap)
 
     def __unicode__(self):
-        return self.toUrlValue()
+        return force_unicode(self.toUrlValue())
 
     def equals(self, other):
         return (self.lat() == other.lat() and self.lng() == other.lng())
@@ -636,7 +610,7 @@ class LatLngBounds(MapClass):
             self['arg'].setdefault('ne', ne)
 
     def __unicode__(self):
-        return self.toUrlValue()
+        return force_unicode(self.toUrlValue())
 
     def equals(self, other):
         # Check if our corners are equal.
@@ -677,19 +651,22 @@ class Point(MapClass):
         self['arg'] = Args(['x', 'y'], [x, y])
 
     def __unicode__(self):
-        return '%s,%s' % (self['arg'].get('x', 0),
-                          self['arg'].get('y', 0))
+        return u'%s,%s' % (self['arg'].get('x', 0), self['arg'].get('y', 0))
 
-    def _getX(self):
+    @property
+    def x(self):
         return self['arg'][0]
 
-    def _getY(self):
-        return self['arg'][1]
-
-    def _setX(self, x):
+    @x.setter
+    def x(self, x):
         self['arg'][0] = x
 
-    def _setY(self, y):
+    @property
+    def y(self):
+        return self['arg'][1]
+
+    @y.setter
+    def y(self, y):
         self['arg'][1] = y
 
     def equals(self, other):
@@ -697,10 +674,6 @@ class Point(MapClass):
 
     def toString(self):
         return '(%s, %s)' % (self.x, self.y)
-
-    x = property(_getX, _setX)
-
-    y = property(_getY, _setY)
 
 
 class Size(MapClass):
@@ -721,19 +694,23 @@ class Size(MapClass):
             self['arg'].setdefault('heightUnit', heightUnit)
 
     def __unicode__(self):
-        return '%sx%s' % (self['arg'].get('width', 0),
-                          self['arg'].get('height', 0))
+        return u'%sx%s' % (self['arg'].get('width', 0),
+                           self['arg'].get('height', 0))
 
-    def _getHeight(self):
+    @property
+    def height(self):
         return self['arg'][1]
 
-    def _getWidth(self):
-        return self['arg'][0]
-
-    def _setHeight(self, height):
+    @height.setter
+    def height(self, height):
         self['arg'][1] = height
 
-    def _setWidth(self, width):
+    @property
+    def width(self):
+        return self['arg'][0]
+
+    @width.setter
+    def width(self, width):
         self['arg'][0] = width
 
     def equals(self, other):
@@ -741,10 +718,6 @@ class Size(MapClass):
 
     def toString(self):
         return '(%s, %s)' % (self.width, self.height)
-
-    height = property(_getHeight, _setHeight)
-
-    width = property(_getWidth, _setWidth)
 
 
 class Degree(float):
@@ -765,7 +738,7 @@ class Degree(float):
         return (('%%0.%df' % self.precision) % self).rstrip('0').rstrip('.')
 
     def __unicode__(self):
-        return self.__repr__()
+        return force_unicode(self.__repr__())
 
     def __str__(self):
         return self.__repr__()
