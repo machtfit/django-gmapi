@@ -19,10 +19,6 @@ JQUERY_URL = getattr(settings, 'GMAPI_JQUERY_URL',
 MAPS_URL = getattr(settings, 'GMAPI_MAPS_URL',
                    'http://maps.google.com/maps/api/js?sensor=false')
 
-# Same rules apply as ADMIN_MEDIA_PREFIX.
-# Omit leading slash to make relative to MEDIA_URL.
-MEDIA_PREFIX = getattr(settings, 'GMAPI_MEDIA_PREFIX', 'gmapi/')
-
 
 class GoogleMap(Widget):
     def __init__(self, attrs=None):
@@ -59,7 +55,7 @@ class GoogleMap(Widget):
             js.append(JQUERY_URL)
         if not self.nomapsjs:
             js.append(MAPS_URL)
-        js.append(urljoin(MEDIA_PREFIX, 'js/jquery.gmapi%s.js' % JSMIN))
+        js.append('gmapi/js/jquery.gmapi%s.js' % JSMIN)
         return Media(js=js)
 
     media = property(_media)
