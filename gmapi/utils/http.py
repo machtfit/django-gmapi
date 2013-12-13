@@ -3,7 +3,8 @@ from urllib import quote_plus
 
 
 def urlencode(query, doseq=0, safe=''):
-    """Custom urlencode that leaves static map delimiters ("|", ",", ":") alone.
+    """Custom urlencode that leaves static map delimiters ("|", ",", ":")
+    alone.
 
     Can operate on unicode strings. The parameters are first cast to UTF-8
     encoded strings and then encoded as per normal.

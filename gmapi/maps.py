@@ -118,7 +118,7 @@ class MapConstant(MapClass):
         self.const = const
 
     def __setitem__(self, key, value):
-        raise KeyError, key
+        raise KeyError(key)
 
     def __unicode__(self):
         return force_unicode(self.const.lower())
@@ -150,12 +150,10 @@ class ScaleControlStyle(object):
 
 
 class ControlPosition(object):
-    BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT, LEFT, RIGHT, TOP, \
-    TOP_LEFT, TOP_RIGHT = [
-        MapConstant('ControlPosition', c) for c in
-        ['BOTTOM', 'BOTTOM_LEFT', 'BOTTOM_RIGHT', 'LEFT', 'RIGHT', 'TOP',
-         'TOP_LEFT', 'TOP_RIGHT']
-    ]
+    BOTTOM, BOTTOM_LEFT, BOTTOM_RIGHT, LEFT, RIGHT, TOP, TOP_LEFT, TOP_RIGHT \
+        = [MapConstant('ControlPosition', c) for c in
+           ['BOTTOM', 'BOTTOM_LEFT', 'BOTTOM_RIGHT', 'LEFT', 'RIGHT', 'TOP',
+            'TOP_LEFT', 'TOP_RIGHT']]
 
 
 class Marker(MapClass):
@@ -167,18 +165,16 @@ class Marker(MapClass):
 
     """
     getClickable, getCursor, getDraggable, getFlat, getIcon, getPosition, \
-    getShadow, getShape, getTitle, getVisible, getZIndex = [
-        _getMethod(k) for k in
-        ['clickable', 'cursor', 'draggable', 'flat', 'icon', 'position',
-         'shadow', 'shape', 'title', 'visible', 'zIndex']
-    ]
+        getShadow, getShape, getTitle, getVisible, getZIndex \
+        = [_getMethod(k) for k in
+           ['clickable', 'cursor', 'draggable', 'flat', 'icon', 'position',
+            'shadow', 'shape', 'title', 'visible', 'zIndex']]
 
     setClickable, setCursor, setDraggable, setFlat, setIcon, setMap, \
-    setPosition, setShadow, setShape, setTitle, setVisible, setZIndex = [
-        _setMethod(k) for k in
-        ['clickable', 'cursor', 'draggable', 'flat', 'icon', 'map',
-         'position', 'shadow', 'shape', 'title', 'visible', 'zIndex']
-    ]
+        setPosition, setShadow, setShape, setTitle, setVisible, setZIndex \
+        = [_setMethod(k) for k in
+           ['clickable', 'cursor', 'draggable', 'flat', 'icon', 'map',
+            'position', 'shadow', 'shape', 'title', 'visible', 'zIndex']]
 
     def __init__(self, opts=None):
         super(Marker, self).__init__(cls='Marker')
@@ -229,10 +225,12 @@ class Marker(MapClass):
                 l = self._label or u'\u2022'
                 c = (self._color or 'FF776B').lstrip('0x')
                 options['icon'] = MarkerImage('%s?chst=d_map_pin_letter'
-                                              '&chld=%s|%s' % (CHART_URL, l, c),
+                                              '&chld=%s|%s' % (CHART_URL, l,
+                                                               c),
                                               anchor=Point(10, 33))
                 options['shadow'] = MarkerImage('%s?chst=d_map_pin_shadow' %
-                                                CHART_URL, anchor=Point(12, 35))
+                                                CHART_URL, anchor=Point(12,
+                                                                        35))
             elif 'icon' in options:
                 self._color = None
                 self._label = None
@@ -292,7 +290,8 @@ class Polyline(MapClass):
         if 'strokeColor' in opts:
             color = u'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
             if 'strokeOpacity' in opts:
-                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0),
+                                       255)
             params.append(color)
         if 'strokeWeight' in opts:
             params.append(u'weight:%d' % opts['strokeWeight'])
@@ -350,7 +349,8 @@ class Polygon(MapClass):
         if 'strokeColor' in opts:
             color = u'color:0x%s' % opts['strokeColor'].lstrip('#').lower()
             if 'strokeOpacity' in opts:
-                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0), 255)
+                color += u'%02x' % min(max(opts['strokeOpacity'] * 255, 0),
+                                       255)
             params.append(color)
         if 'strokeWeight' in opts:
             params.append(u'weight:%d' % opts['strokeWeight'])
@@ -481,10 +481,10 @@ class Geocoder(object):
             data = cache.get(cache_key)
             if data is None:
                 if (max(0, time.time() - self.__class__._last) <
-                    self.__class__._sleep):
+                        self.__class__._sleep):
                     # Wait a bit so that we don't make requests too fast.
                     time.sleep(max(0, self.__class__._sleep +
-                                      self.__class__._last - time.time()))
+                                   self.__class__._last - time.time()))
                 data = urllib.urlopen(url).read()
                 self.__class__._last = time.time()
             response = loads(data)
@@ -568,7 +568,8 @@ class LatLng(MapClass):
     """
     def __init__(self, lat, lng, noWrap=None):
         super(LatLng, self).__init__(cls='LatLng')
-        self['arg'] = Args(['lat', 'lng', 'noWrap'], [Degree(lat), Degree(lng)])
+        self['arg'] = Args(['lat', 'lng', 'noWrap'], [Degree(lat),
+                                                      Degree(lng)])
         if noWrap is not None:
             self['arg'].setdefault('noWrap', noWrap)
 

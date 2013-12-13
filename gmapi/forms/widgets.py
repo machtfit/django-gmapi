@@ -7,7 +7,6 @@ from django.utils.html import escape
 from django.utils.safestring import mark_safe
 from django.utils.simplejson import dumps
 from gmapi import maps
-from urlparse import urljoin
 
 
 JSMIN = getattr(settings, 'GMAPI_JSMIN', not settings.DEBUG) and '.min' or ''
