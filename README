@@ -1,3 +1,12 @@
+This is a fork of https://bitbucket.org/dbinit/django-gmapi/. I forked that
+repository because I need django-gmapi to work on Django-1.6 without
+DeprecationWarnings. I forked it on github because I don't know mercurial well.
+Depending on how things go I might ask the original maintainer to hand over the
+pypi project so that I can make official releases.
+
+-- Markus Bertheau, mbertheau@gmail.com, 2013-12-13
+
+
 =========================================================
 Django Google Maps API v3 and Static Maps API helper app.
 =========================================================
