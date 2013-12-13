@@ -5,7 +5,7 @@ from django.forms.util import flatatt
 from django.forms.widgets import Widget
 from django.utils.html import escape
 from django.utils.safestring import mark_safe
-from django.utils.simplejson import dumps
+from json import dumps
 from gmapi import maps
 
 
