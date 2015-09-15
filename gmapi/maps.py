@@ -17,6 +17,8 @@ GEOCODE_URL = getattr(settings, 'GMAPI_GEOCODE_URL',
 CHART_URL = getattr(settings, 'GMAPI_CHART_URL',
                     'http://chart.apis.google.com/chart')
 
+API_KEY = getattr(settings, 'GMAPI_API_KEY', None)
+
 
 class MapClass(dict):
     """A base class for Google Maps API classes."""
@@ -473,6 +475,11 @@ class Geocoder(object):
                 request['sensor'] = 'true' if request['sensor'] else 'false'
         else:
             request['sensor'] = 'false'
+
+        # add api key if not already present
+        if API_KEY is not None and 'key' not in request:
+            request['key'] = API_KEY
+
         cache_key = urlencode(request)
         url = '%s/json?%s' % (GEOCODE_URL, cache_key)
         # Try up to 30 times if over query limit.
